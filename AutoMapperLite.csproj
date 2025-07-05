@@ -7,7 +7,7 @@
 
 		<!-- NuGet Metadata -->
 		<PackageId>AutoMapperLite</PackageId>
-		<Version>2.0.4</Version>
+		<Version>3.0.1</Version>
 		<PackageReleaseNotes>
 			• Added ForPath and ForMember support
 			• Improved collection mapping (List&lt;T&gt;)
