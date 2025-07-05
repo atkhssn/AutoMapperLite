@@ -1,33 +1,21 @@
-﻿namespace AutoMapperLite.Mapping;
-
-public class MapperConfig
+﻿namespace AutoMapperLite.Mapping
 {
-    private readonly Dictionary<(Type source, Type destination), object> _maps = new();
-
-    public MapConfig<TSource, TDestination> CreateMap<TSource, TDestination>()
+    public class MapperConfig
     {
-        var map = new MapConfig<TSource, TDestination>();
-        _maps[(typeof(TSource), typeof(TDestination))] = map;
-        return map;
-    }
+        internal readonly Dictionary<(Type Source, Type Destination), object> Mappings = new();
 
-    internal bool TryMap(Type sourceType, Type destType, object sourceValue, out object? result)
-    {
-        if (_maps.TryGetValue((sourceType, destType), out var mapObj))
+        public MapBuilder<TSource, TDestination> CreateMap<TSource, TDestination>()
         {
-            var method = mapObj.GetType().GetMethod("Map", new[] { sourceType, typeof(MapperConfig) });
-            result = method?.Invoke(mapObj, new[] { sourceValue, this });
-            return result != null;
+            var builder = new MapBuilder<TSource, TDestination>();
+            Mappings[(typeof(TSource), typeof(TDestination))] = builder;
+            return builder;
         }
 
-        result = null;
-        return false;
-    }
-
-    internal MapConfig<TSource, TDestination>? GetConfig<TSource, TDestination>()
-    {
-        return _maps.TryGetValue((typeof(TSource), typeof(TDestination)), out var config)
-            ? config as MapConfig<TSource, TDestination>
-            : null;
+        public MapBuilder<TSource, TDestination> GetMap<TSource, TDestination>()
+        {
+            return Mappings.TryGetValue((typeof(TSource), typeof(TDestination)), out var map)
+                ? (MapBuilder<TSource, TDestination>)map
+                : throw new InvalidOperationException($"Mapping not found from {typeof(TSource)} to {typeof(TDestination)}");
+        }
     }
 }
