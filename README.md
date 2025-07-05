@@ -186,7 +186,9 @@ SOFTWARE.
 ## Contact
 
 For questions or help, contact your internal dev team or maintainer.
+
 Email: [atik.hassan@outlook.com](mailto:atik.hassan@outlook.com)
+
 GitHub: [AutoMapperLite](https://github.com/atkhssn/AutoMapperLite)
 
 ---
