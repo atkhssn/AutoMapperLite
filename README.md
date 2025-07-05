@@ -1,4 +1,4 @@
-﻿# AutoMapperLite
+# AutoMapperLite
 
 AutoMapperLite is a lightweight object-to-object mapper for .NET.  
 It supports simple and nested class mapping using reflection.
