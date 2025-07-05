@@ -7,11 +7,18 @@
 
 		<!-- NuGet Metadata -->
 		<PackageId>AutoMapperLite</PackageId>
-		<Version>2.0.3</Version>
+		<Version>2.0.4</Version>
+		<PackageReleaseNotes>
+			• Added ForPath and ForMember support
+			• Improved collection mapping (List&lt;T&gt;)
+			• Simplified usage with Map&lt;TDestination&gt;(TSource) format
+			• Support for nested property mapping and configuration profiles
+			• Refactored internal Mapper logic and added DI support
+		</PackageReleaseNotes>
 		<Authors>Atik Hassan</Authors>
 		<Company>AutoMapperLite</Company>
 		<Description>A lightweight object-to-object mapper alternative to AutoMapper.</Description>
-		<PackageTags>mapper reflection automapperlite lightweight automapper objectmapper di nested</PackageTags>
+		<PackageTags>mapper reflection automapperlite lightweight automapper objectmapper</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryUrl>https://github.com/atkhssn/AutoMapperLite</RepositoryUrl>
 		<Copyright>© 2025 Atik Hassan</Copyright>

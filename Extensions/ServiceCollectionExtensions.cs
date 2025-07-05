@@ -1,5 +1,4 @@
 ﻿using AutoMapperLite.Interfaces;
-using AutoMapperLite.Mapping;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -7,21 +6,23 @@ namespace AutoMapperLite.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddAutoMapperLite(this IServiceCollection services, Assembly assembly)
+        public static IServiceCollection AddAutoMapperLite(this IServiceCollection services, params Assembly[] assemblies)
         {
             var config = new MapperConfig();
 
-            var profiles = assembly.GetTypes()
-                .Where(t => typeof(IProfile).IsAssignableFrom(t) && !t.IsAbstract && !t.IsInterface)
-                .Select(Activator.CreateInstance)
-                .Cast<IProfile>();
+            var profileTypes = assemblies
+                .SelectMany(a => a.GetTypes())
+                .Where(t => typeof(Profile).IsAssignableFrom(t) && !t.IsAbstract && t.IsClass)
+                .ToList();
 
-            foreach (var profile in profiles)
-                profile.Configure(config);
+            foreach (var profileType in profileTypes)
+            {
+                var profileInstance = (Profile)Activator.CreateInstance(profileType)!;
+                profileInstance.Configure(config);
+            }
 
-            services.AddSingleton(config);
-            services.AddSingleton<Mapper>();
-            services.AddSingleton<IMapper>(sp => sp.GetRequiredService<Mapper>());
+            services.AddSingleton<IMapperConfig>(config);
+            services.AddSingleton<IMapper, Mapper>();
 
             return services;
         }
