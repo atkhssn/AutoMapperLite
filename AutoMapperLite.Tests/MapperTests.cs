@@ -263,5 +263,65 @@ namespace AutoMapperLite.Tests
 
             Assert.Empty(exceptions);
         }
+
+        [Fact]
+        public void Map_AutoMapsSameEnumType()
+        {
+            var config = new MapperConfig();
+            config.CreateMap<Order, OrderDto>();
+            var mapper = new Mapper(config);
+
+            var result = mapper.Map<OrderDto>(new Order { Status = OrderStatus.Shipped });
+
+            Assert.Equal(OrderStatus.Shipped, result.Status);
+        }
+
+        [Fact]
+        public void Map_SkipsAssignment_WhenSourcePropertyIsNull()
+        {
+            // A null source property does not overwrite an existing destination default —
+            // it is skipped entirely, not assigned as null. A same-type round trip can't
+            // distinguish "skipped" from "assigned null" since both look like null; this
+            // uses a destination with a non-null default to make the distinction observable.
+            var config = new MapperConfig();
+            config.CreateMap<NullSource, DefaultedDestination>();
+            var mapper = new Mapper(config);
+
+            var result = mapper.Map<DefaultedDestination>(new NullSource { Text = null });
+
+            Assert.Equal("server-default", result.Text);
+        }
+
+        [Fact]
+        public void Map_PopulatesRecordWithParameterlessConstructorAndInitProperties()
+        {
+            var config = new MapperConfig();
+            config.CreateMap<SimpleSource, InitOnlyRecordDto>();
+            var mapper = new Mapper(config);
+
+            var result = mapper.Map<InitOnlyRecordDto>(new SimpleSource { Id = 1, Name = "Ada" });
+
+            Assert.Equal(1, result.Id);
+            Assert.Equal("Ada", result.Name);
+        }
+
+        [Fact]
+        public void Map_ThrowsDescriptiveException_ForDestinationWithNoParameterlessConstructor()
+        {
+            // Positional records (and any type without a public parameterless constructor)
+            // are not supported as mapping destinations, since instances are created via
+            // Activator.CreateInstance. This is a known limitation, not a bug — verify it
+            // fails with a clear, actionable message instead of a bare MissingMethodException.
+            var config = new MapperConfig();
+            config.CreateMap<SimpleSource, PositionalRecordDto>();
+            var mapper = new Mapper(config);
+
+            var outer = Assert.Throws<System.Reflection.TargetInvocationException>(
+                () => mapper.Map<PositionalRecordDto>(new SimpleSource { Id = 1, Name = "Ada" }));
+
+            var inner = Assert.IsType<InvalidOperationException>(outer.InnerException);
+            Assert.Contains("PositionalRecordDto", inner.Message);
+            Assert.Contains("parameterless constructor", inner.Message);
+        }
     }
 }

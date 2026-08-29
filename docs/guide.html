@@ -78,6 +78,7 @@
         <li><a href="#advanced">Advanced usage</a></li>
         <li><a href="#dependency-injection">Dependency injection</a></li>
         <li><a href="#thread-safety">Thread-safety</a></li>
+        <li><a href="#limitations">Limitations</a></li>
       </ul>
     </nav>
 
@@ -171,6 +172,42 @@
       </p>
     </section>
 
+    <section id="limitations">
+      <h2>Limitations</h2>
+      <p>These are deliberate scope boundaries, verified by tests, not bugs:</p>
+      <ul>
+        <li>
+          <strong>A <code>null</code> source property value is skipped, not assigned.</strong>
+          If the destination property already has a non-null default (e.g. a field initializer),
+          mapping a <code>null</code> source value will not overwrite it. This differs from
+          AutoMapper's default behavior (which does overwrite with <code>null</code>).
+        </li>
+        <li>
+          <strong>Auto-mapping requires an exact type match</strong> (or a registered map).
+          Two <em>different</em> enum types with identical member names, <code>enum → string</code>,
+          and numeric widening (<code>int → long</code>, etc.) are all silently left at the
+          destination's default — not converted, not thrown. There is no convention/coercion
+          engine; see the <a href="comparison.html">comparison</a> page for how this differs
+          from AutoMapper and Mapster.
+        </li>
+        <li>
+          <strong>Destination types need a public parameterless constructor</strong> — instances
+          are created via <code>Activator.CreateInstance</code>. Positional records
+          (<code>record Foo(int A)</code>) and classes requiring constructor arguments throw a
+          clear <code>InvalidOperationException</code> naming the type. Records <em>with</em> a
+          parameterless constructor and <code>{ get; init; }</code> properties work fine —
+          reflection can set an init accessor even though the C# compiler wouldn't let you call
+          it directly outside the constructor.
+        </li>
+        <li>
+          <strong>A <code>null</code> element inside a source collection</strong> passed to
+          <code>Map&lt;List&lt;T&gt;&gt;</code> throws <code>NullReferenceException</code> — there's
+          no single obviously-correct behavior (skip it? map it to <code>null</code>?) so it's
+          left as a hard failure rather than a silent guess.
+        </li>
+      </ul>
+    </section>
+
   </div>
 </main>
 
@@ -215,7 +252,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.0.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.0.2 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

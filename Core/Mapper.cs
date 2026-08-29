@@ -110,7 +110,7 @@ namespace AutoMapperLite
             // is a value type, calling PropertyInfo.SetValue against a freshly-boxed copy on
             // every call (as opposed to this single shared box) would silently discard every
             // assignment once unboxed back into a TDestination local.
-            object destination = Activator.CreateInstance(destinationType)!;
+            object destination = CreateInstance(destinationType);
 
             var destProps = GetPublicProperties(destinationType);
             var sourcePropsByName = GetPropertiesByName(typeof(TSource));
@@ -130,7 +130,7 @@ namespace AutoMapperLite
                 var nestedKeys = builder.GetNestedKeys(path);
                 if (nestedKeys.Count > 0)
                 {
-                    var nestedInstance = Activator.CreateInstance(prop.PropertyType)!;
+                    var nestedInstance = CreateInstance(prop.PropertyType);
                     for (var i = 0; i < nestedKeys.Count; i++)
                     {
                         ApplyNestedMapping(nestedInstance, source, nestedKeys[i], builder);
@@ -168,6 +168,24 @@ namespace AutoMapperLite
             }
 
             return (TDestination)destination;
+        }
+
+        private static object CreateInstance(Type type)
+        {
+            try
+            {
+                return Activator.CreateInstance(type)!;
+            }
+            catch (MissingMethodException ex)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot map to '{type.Name}': it has no public parameterless constructor. " +
+                    "AutoMapperLite creates destination instances via Activator.CreateInstance, so " +
+                    "positional records, readonly structs, and classes requiring constructor arguments " +
+                    "are not supported as mapping destinations — use a type with a public parameterless " +
+                    "constructor (init-only properties are fine, e.g. a record with { get; init; } members).",
+                    ex);
+            }
         }
 
         private static void SetMappedValue(PropertyInfo prop, object destination, object? value, string propertyPath)
@@ -208,7 +226,7 @@ namespace AutoMapperLite
 
                 if (prop.GetValue(current) == null)
                 {
-                    var nextInstance = Activator.CreateInstance(prop.PropertyType)!;
+                    var nextInstance = CreateInstance(prop.PropertyType);
                     prop.SetValue(current, nextInstance);
                     current = nextInstance;
                 }

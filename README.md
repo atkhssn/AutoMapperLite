@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <strong>v4.0.1</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
+  <strong>v4.0.2</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
   <a href="https://automapperlite.atkhssn.info">automapperlite.atkhssn.info</a>
 </p>
 
@@ -17,7 +17,7 @@ Designed to simplify DTO and entity mapping with easy-to-use profiles, support f
 
 Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 
-> **4.0.1 is the current official release.** All prior versions (3.x and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
+> **4.0.2 is the current official release.** All prior versions (4.0.1 and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
 
 📖 Full documentation (Getting Started, API reference, usage guide, performance, FAQ, comparison): **[automapperlite.atkhssn.info](https://automapperlite.atkhssn.info)** once deployed, or open [`docs/index.html`](docs/index.html) locally in a browser.
 
@@ -25,7 +25,7 @@ Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 
 ## Features
 
-- Simple and fast object mapping between source and destination types.
+- Simple, lightweight object mapping between source and destination types.
 - Supports nested object mapping, including nested `List<T>` properties whose item types have a registered map.
 - Fluent profile-based configuration similar to AutoMapper.
 - Supports `ForMember` and `ForPath` for custom member and nested member mappings.
@@ -41,7 +41,7 @@ Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 Install the NuGet package in your project:
 
 ```bash
-dotnet add package AutoMapperLite --version 4.0.1
+dotnet add package AutoMapperLite --version 4.0.2
 ```
 
 ### 1. Register AutoMapperLite in your DI container

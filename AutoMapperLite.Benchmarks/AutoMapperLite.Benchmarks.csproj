@@ -9,7 +9,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+		<!-- Comparison-only dependencies for the benchmark suite (dev tool, not shipped in the
+		     packed library). Latest stable as of this writing. -->
+		<PackageReference Include="AutoMapper" Version="16.2.0" />
+		<PackageReference Include="Mapster" Version="10.0.12" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -21,7 +21,7 @@ dotnet build AutoMapperLite.slnx
 # on a clean tree. Plain `dotnet build` no longer produces a .nupkg.
 dotnet pack AutoMapperLite.csproj -c Release
 
-# Run the test suite
+# Run the test suite (all TFMs the test project targets)
 dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj
 
 # Run a single test
@@ -31,12 +31,16 @@ dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj --filter "FullyQual
 dotnet run --project AutoMapperLite.Benchmarks -c Release
 
 # Run the test suite against a specific target framework
-dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj -f net6.0
+dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj -f net8.0
 ```
 
 Note: `AutoMapperLite.csproj` explicitly excludes the `AutoMapperLite.Tests/` and `AutoMapperLite.Benchmarks/` folders from its own compile globs (see the `Compile Remove` items) since those projects live as subdirectories of the main project's folder — keep those excludes in sync if the project layout changes.
 
-The library multi-targets `net6.0;net7.0;net8.0;net9.0;net10.0` and the test project mirrors the same TFM list so the suite actually runs (not just compiles) against every supported framework — all five runtimes are expected to be installed locally. The benchmark project stays single-targeted (net8.0); it's a dev-only tool, not shipped.
+**Test tooling is xunit.v3 (Microsoft Testing Platform / MTP), not classic xunit 2.x/VSTest.** Two consequences, both load-bearing:
+- **Test-executable TFMs are net8.0/net9.0/net10.0 only** — `AutoMapperLite.Tests.csproj` intentionally does *not* include net6.0/net7.0, because `xunit.v3` 4.0.0 and `Microsoft.NET.Test.Sdk` 18.9.0 only support `net472+`/`net8.0+` (stated directly in `xunit.v3`'s own package description). The *library* (`AutoMapperLite.csproj`) still multi-targets `net6.0;net7.0;net8.0;net9.0;net10.0` and is compile-verified on all five — this is a test-tooling floor, not a library constraint. Do not re-add net6.0/net7.0 to the test project without downgrading the test packages (which defeats the point of keeping them current).
+- **`dotnet test` requires the repo-root `global.json`** (`{"test":{"runner":"Microsoft.Testing.Platform"}}`). xunit.v3 here is built on MTP v2 (`xunit.v3.mtp-v2`), which drops the legacy VSTest-bridge `dotnet test` path entirely on the .NET 10 SDK — without `global.json`, `dotnet test` hard-errors with "Testing with VSTest target is no longer supported...". Don't remove `global.json` or add `TestingPlatformDotnetTestSupport` (the old bridge property) back; neither restores VSTest-mode compatibility with MTP v2 on SDK 10+, only native MTP mode works. See https://aka.ms/dotnet-test-mtp-error for Microsoft's own migration notes.
+
+The benchmark project stays single-targeted (net8.0); it's a dev-only tool, not shipped.
 
 ## Architecture
 
@@ -57,7 +61,7 @@ The library has a small, fixed pipeline: **Profile → MapperConfig → MapBuild
 
 ## Key constraints to preserve when modifying
 
-- Target frameworks are `net6.0;net7.0;net8.0;net9.0;net10.0` with nullable reference types and implicit usings enabled. `Microsoft.Extensions.DependencyInjection(.Abstractions)` is pinned to `8.0.x` rather than a `9.x` release because `9.x` declares (and warns on) dropped support for net6.0/net7.0 even though the assembly itself is netstandard2.0-compatible; re-check this pin before bumping that dependency.
+- Target frameworks are `net6.0;net7.0;net8.0;net9.0;net10.0` with nullable reference types and implicit usings enabled. `Microsoft.Extensions.DependencyInjection.Abstractions` is kept at the latest version (`10.0.11` as of this writing) per explicit instruction to never downgrade packages; it declares (and would otherwise warn on) "not tested" support for net6.0/net7.0, which is suppressed via `SuppressTfmSupportBuildWarnings` in `AutoMapperLite.csproj` — verified benign by an actual runtime smoke test (DI container built, `AddAutoMapperLite` resolved, a real `Map<T>` call executed) on net6.0, not just assumed from the warning text.
 - Packing requires `dotnet pack -c Release`, not `dotnet build` (see the note under Commands above) — bump `Version` in `AutoMapperLite.csproj` (and update `PackageReleaseNotes`) when shipping a change intended for release.
 - Public API surface (`IMapper`, `IMapperConfig`, `MapBuilder<,>`, `Profile`) is what consuming projects bind against directly; changes here are breaking changes for NuGet consumers. `IMapper.Map<TDestination>`'s `source` parameter is `object?` (not `object`) — this is intentionally nullable since the method has always accepted and handled `null` at runtime.
 - `MapBuilder<,>.MemberMappings` is `internal`; `AutoMapperLite.csproj` grants `AutoMapperLite.Tests` access via `InternalsVisibleTo` so tests can assert on registered mapping keys directly.
@@ -65,3 +69,6 @@ The library has a small, fixed pipeline: **Profile → MapperConfig → MapBuild
 - The reflection-metadata caches in `Core/Mapper.cs` (`MapSingleMethodCache`, `MapMethodCache`, `PublicPropertiesCache`, `PropertiesByNameCache`) are `static` and process-wide by design (`Type` → metadata is a process-wide invariant), not per-`Mapper`-instance — don't move them to instance fields, that would defeat the point of caching across DI-resolved `Mapper` instances/scopes.
 - A source item that is `null` inside a collection passed to `Map<List<TDestination>>` will `NullReferenceException` on `item.GetType()` — this is a pre-existing limitation, not something recently introduced; treat it as a known edge case rather than "fixing" it silently if you touch that loop, since there's no single obviously-correct behavior for a null list element (skip it? add `null` to the result? both are behavior changes).
 - `ForMember`/`ForPath` functions must return the *already-mapped* value, not the raw source sub-object — the library never implicitly converts types inside a custom mapping function. When source/destination property types differ, the function has to call back into a `Mapper` itself (e.g. `src => mapper.Map<CountryViewModel>(src.Country)`, capturing a `Mapper` built from the same `config` in the closure). The README's flagship "Create Mapping Profiles" example previously got this wrong (passed the raw `Country` straight through) and threw `InvalidOperationException` at runtime for *anyone who copy-pasted it* — verified by actually running it, not just by reading the code. If you touch that example again, re-run it, don't just eyeball it.
+- **A `null` source property value is skipped, not assigned** (`if (value == null) continue;` in the auto-map branch of `MapSingle`) — a destination's own default (field initializer, etc.) is preserved rather than overwritten with `null`. This is easy to miss because a same-typed round trip can't distinguish "skipped" from "assigned null" (both look like null); `MapperTests.Map_SkipsAssignment_WhenSourcePropertyIsNull` uses a destination with a *non-null* default specifically to make the distinction observable. This differs from AutoMapper's default (which does overwrite with null) — worth calling out if anyone asks why a null source field didn't clobber a computed default.
+- **Auto-map only fires on an exact `Type` match** (or a registered map). Two *different* enum types with identical member names, `enum → string`, and numeric widening (`int → long`, etc.) are all silently left at the destination's default — not converted, not thrown. This is a deliberate scope boundary (no convention/coercion engine, consistent with the "lightweight, not AutoMapper" positioning — see `docs/comparison.html`), not a bug; don't "fix" it by quietly adding conversion logic without discussing the API/behavior change first.
+- **Destination types need a public parameterless constructor** — instances are created via `Activator.CreateInstance`. Positional records (`record Foo(int A)`) and any class requiring constructor arguments throw (wrapped by `CreateInstance` into a clear `InvalidOperationException` naming the type and explaining why, instead of a bare `MissingMethodException`). Records *with* a parameterless constructor and `{ get; init; }` properties work fine — reflection's `PropertyInfo.SetValue` can call an init accessor even though the C# compiler wouldn't let you call it directly (the `init` restriction is compile-time only). No constructor-parameter mapping is implemented.

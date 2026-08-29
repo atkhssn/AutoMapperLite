@@ -1,3 +1,4 @@
+using System.Reflection;
 using BenchmarkDotNet.Running;
 
-BenchmarkRunner.Run<AutoMapperLite.Benchmarks.MappingBenchmarks>();
+BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args);

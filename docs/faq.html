@@ -88,7 +88,7 @@
       "name": "How do I install AutoMapperLite?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "dotnet add package AutoMapperLite --version 4.0.1. See Getting Started for the full walkthrough."
+        "text": "dotnet add package AutoMapperLite --version 4.0.2. See Getting Started for the full walkthrough."
       }
     },
     {
@@ -153,6 +153,22 @@
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "Yes. Configuration and mapping are both safe for concurrent use, verified by dedicated concurrency tests in the repository."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does AutoMapperLite support enum, numeric, or type conversion?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Only exact type matches auto-map, or types with a registered CreateMap. Two different enum types (even with identical member names), enum to string, and numeric widening (int to long) are not converted automatically — the destination property is silently left at its default. Use ForMember for explicit conversions."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does AutoMapperLite support records or constructor mapping?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Records with a parameterless constructor and init-only properties work fine. Positional records and any type without a public parameterless constructor are not supported as mapping destinations, since instances are created via Activator.CreateInstance."
       }
     }
   ]
@@ -224,7 +240,7 @@
       </details>
       <details class="faq-item">
         <summary>How do I install AutoMapperLite?</summary>
-        <div class="faq-answer"><code>dotnet add package AutoMapperLite --version 4.0.1</code>. See <a href="getting-started.html">Getting Started</a> for the full walkthrough.</div>
+        <div class="faq-answer"><code>dotnet add package AutoMapperLite --version 4.0.2</code>. See <a href="getting-started.html">Getting Started</a> for the full walkthrough.</div>
       </details>
       <details class="faq-item">
         <summary>How do I map an object with AutoMapperLite?</summary>
@@ -257,6 +273,14 @@
       <details class="faq-item">
         <summary>Is AutoMapperLite thread-safe?</summary>
         <div class="faq-answer">Yes. Configuration and mapping are both safe for concurrent use, verified by dedicated concurrency tests in the repository.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Does AutoMapperLite support enum, numeric, or type conversion?</summary>
+        <div class="faq-answer">Only exact type matches auto-map, or types with a registered <code>CreateMap</code>. Two different enum types (even with identical member names), <code>enum → string</code>, and numeric widening (<code>int → long</code>) are not converted automatically — the destination property is silently left at its default. Use <code>ForMember</code> for explicit conversions. See <a href="guide.html#limitations">Guide → Limitations</a>.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Does AutoMapperLite support records or constructor mapping?</summary>
+        <div class="faq-answer">Records with a parameterless constructor and <code>{ get; init; }</code> properties work fine. Positional records (<code>record Foo(int A)</code>) and any type without a public parameterless constructor are not supported as mapping destinations — instances are created via <code>Activator.CreateInstance</code>, with a clear error naming the type when that fails. See <a href="guide.html#limitations">Guide → Limitations</a>.</div>
       </details>
     </section>
 
@@ -304,7 +328,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.0.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.0.2 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

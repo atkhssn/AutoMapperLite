@@ -79,4 +79,34 @@ namespace AutoMapperLite.Tests
         public int X { get; set; }
         public int Y { get; set; }
     }
+
+    public enum OrderStatus { Pending, Shipped, Delivered }
+
+    public class Order
+    {
+        public OrderStatus Status { get; set; }
+    }
+
+    public class OrderDto
+    {
+        public OrderStatus Status { get; set; }
+    }
+
+    public class NullSource
+    {
+        public string? Text { get; set; }
+    }
+
+    public class DefaultedDestination
+    {
+        public string Text { get; set; } = "server-default";
+    }
+
+    public class InitOnlyRecordDto
+    {
+        public int Id { get; init; }
+        public string Name { get; init; } = string.Empty;
+    }
+
+    public record PositionalRecordDto(int Id, string Name);
 }

@@ -2,7 +2,15 @@
 
 All notable changes to AutoMapperLite are documented here.
 
-## [4.0.1] — 2026-08-29 — Current official release
+## [4.0.2] — 2026-08-29 — Current official release
+
+- **Fixed:** the test project's updated tooling (`xunit.v3`, `Microsoft.NET.Test.Sdk` 18.9.0) only supports net8.0+, and a Microsoft Testing Platform v2 change drops `dotnet test`'s legacy VSTest bridge on the .NET 10 SDK. `AutoMapperLite.Tests` now targets `net8.0;net9.0;net10.0` (the library itself is unaffected and still targets `net6.0;net7.0;net8.0;net9.0;net10.0`), and a repo-root `global.json` opts `dotnet test` into native MTP mode.
+- **Fixed:** `Activator.CreateInstance` failures (e.g. mapping to a positional record with no parameterless constructor) now throw a clear `InvalidOperationException` naming the type, instead of a bare `MissingMethodException`.
+- Added real, measured BenchmarkDotNet comparisons against manual mapping, AutoMapper 16.2.0, and Mapster 10.0.12 (see `docs/performance.html`). AutoMapperLite is **not** the fastest of the four — the docs and package description no longer implied otherwise.
+- Verified and documented several previously-untested behaviors: a `null` source property is skipped (not assigned, so it won't overwrite a destination's own default), auto-map requires an exact type match (different enum types and numeric widening are not converted), and records with a parameterless constructor + init-only properties map correctly.
+- All NuGet packages kept at their latest versions throughout (`Microsoft.Extensions.DependencyInjection.Abstractions` 10.0.11, `Microsoft.NET.Test.Sdk` 18.9.0, `xunit.v3` 4.0.0, `BenchmarkDotNet` 0.15.8) — none downgraded.
+
+## [4.0.1] — 2026-08-29
 
 Official rebrand and release. **All versions prior to 4.0.1 are deprecated** — upgrade.
 

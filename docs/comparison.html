@@ -66,7 +66,7 @@
 
     <section class="hero">
       <h1>AutoMapperLite vs. AutoMapper vs. Mapster</h1>
-      <p class="lead">A feature-level comparison to help you choose the right tool. No unverified performance claims about other projects.</p>
+      <p class="lead">A feature comparison to help you choose the right tool, plus real measured throughput — not marketing claims.</p>
     </section>
 
     <section id="table">
@@ -85,7 +85,10 @@
           <tr><td>Collection mapping</td><td>Yes, incl. nested <code>List&lt;T&gt;</code> properties</td><td>Yes</td><td>Yes</td></tr>
           <tr><td>Dependency injection integration</td><td>Built in (<code>AddAutoMapperLite</code>)</td><td>Via separate package</td><td>Via separate package</td></tr>
           <tr><td>.NET targets</td><td>net6.0 – net10.0</td><td>Broad, actively maintained</td><td>Broad, actively maintained</td></tr>
+          <tr><td>Mapping a simple object (mean time)</td><td>242.0&nbsp;ns</td><td>72.3&nbsp;ns</td><td>17.8&nbsp;ns</td></tr>
+          <tr><td>Mapping a 100-item collection (mean time)</td><td>26,009.1&nbsp;ns</td><td>1,226.3&nbsp;ns</td><td>785.5&nbsp;ns</td></tr>
         </tbody>
+        <caption>Throughput rows are measured with BenchmarkDotNet — see <a href="performance.html">Performance</a> for the full results, methodology, and every scenario. AutoMapperLite is the slowest of the three here; its value proposition is dependency footprint and simplicity, not raw speed.</caption>
       </table>
       </div>
     </section>
@@ -103,10 +106,10 @@
         </div>
         <div class="card">
           <h3>Choose Mapster</h3>
-          <p>You want compiled-expression or source-generator performance with a broad feature set and are comfortable benchmarking it against your specific workload.</p>
+          <p>You want compiled-expression or source-generator performance with a broad feature set — Mapster was the fastest of the three in our own benchmarks.</p>
         </div>
       </div>
-      <p>See <a href="performance.html">Performance</a> for AutoMapperLite's own measured numbers, and the note there on why we don't publish head-to-head speed claims against these projects.</p>
+      <p>See <a href="performance.html">Performance</a> for the full measured results across every scenario, including where AutoMapperLite is slower than the alternatives.</p>
     </section>
 
   </div>
@@ -153,7 +156,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.0.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.0.2 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>
