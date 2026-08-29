@@ -38,4 +38,17 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="AutoMapperLite.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="AutoMapperLite.Tests\**" />
+		<Compile Remove="AutoMapperLite.Benchmarks\**" />
+		<EmbeddedResource Remove="AutoMapperLite.Tests\**" />
+		<EmbeddedResource Remove="AutoMapperLite.Benchmarks\**" />
+		<None Remove="AutoMapperLite.Tests\**" />
+		<None Remove="AutoMapperLite.Benchmarks\**" />
+	</ItemGroup>
+
 </Project>

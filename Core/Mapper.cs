@@ -65,11 +65,14 @@ namespace AutoMapperLite
                 }
 
                 // 2. Handle nested object mapping (ForPath style)
-                var nestedKey = builder.MemberMappings.Keys.FirstOrDefault(k => k.StartsWith(path + "."));
-                if (nestedKey != null)
+                var nestedKeys = builder.MemberMappings.Keys.Where(k => k.StartsWith(path + ".")).ToList();
+                if (nestedKeys.Count > 0)
                 {
                     var nestedInstance = Activator.CreateInstance(prop.PropertyType)!;
-                    ApplyNestedMapping(nestedInstance, source, nestedKey, builder);
+                    foreach (var nestedKey in nestedKeys)
+                    {
+                        ApplyNestedMapping(nestedInstance, source, nestedKey, builder);
+                    }
                     prop.SetValue(destination, nestedInstance);
                     continue;
                 }

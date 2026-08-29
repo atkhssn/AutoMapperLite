@@ -136,50 +136,49 @@ AutoMapperLite/
 │
 ├── Core/
 │ ├── Mapper.cs # Core mapper logic and reflection
-│ ├── MapBuilder.cs # Mapping configuration builder
+│ └── MapperConfig.cs # Mapping registry (CreateMap / GetMap / HasMap)
+│
+├── Mapping/
+│ ├── MapBuilder.cs # Fluent mapping configuration builder (ForMember / ForPath)
 │ └── Profile.cs # Base Profile class for defining maps
 │
 ├── Interfaces/
 │ ├── IMapper.cs # Mapper interface
-│ ├── IMapperConfig.cs # Mapper configuration interface
+│ └── IMapperConfig.cs # Mapper configuration interface
 │
 ├── Extensions/
 │ └── ServiceCollectionExtensions.cs # DI extension methods
 │
+├── AutoMapperLite.Tests/ # xUnit test project
+├── AutoMapperLite.Benchmarks/ # BenchmarkDotNet benchmark project
+│
 ├── README.md # This documentation file
-└── AutoMapperLite.csproj # Project file
+├── LICENSE # MIT License
+├── CONTRIBUTING.md # Contribution guidelines
+├── CODE_OF_CONDUCT.md # Contributor Covenant
+├── SECURITY.md # Vulnerability reporting policy
+└── AutoMapperLite.csproj # Library project file
 ```
 
 ---
 
 ## Contributing
 
-This package is designed for internal or commercial use in your projects.  
-Feel free to fork, modify, and enhance as needed. Pull requests and suggestions are welcome.
+This package is designed for internal or commercial use in your projects.
+Feel free to fork, modify, and enhance as needed. Pull requests and suggestions
+are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started,
+and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
+
+For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md).
 
 ---
 
 ## License
 
-MIT License
+AutoMapper Lite is open-source software licensed under the [MIT License](LICENSE).
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+You are free to use, modify, distribute, and use this software commercially,
+subject to the conditions of the MIT License.
 
 ---
 
