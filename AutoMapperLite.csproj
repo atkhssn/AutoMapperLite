@@ -7,13 +7,11 @@
 
 		<!-- NuGet Metadata -->
 		<PackageId>AutoMapperLite</PackageId>
-		<Version>3.0.1</Version>
+		<Version>3.0.2</Version>
 		<PackageReleaseNotes>
-			• Added ForPath and ForMember support
-			• Improved collection mapping (List&lt;T&gt;)
-			• Simplified usage with Map&lt;TDestination&gt;(TSource) format
-			• Support for nested property mapping and configuration profiles
-			• Refactored internal Mapper logic and added DI support
+			• Fixed a bug where, if multiple ForPath calls targeted nested properties
+			  under the same top-level destination property, only one of them was
+			  ever applied; all such paths are now applied correctly
 		</PackageReleaseNotes>
 		<Authors>Atik Hassan</Authors>
 		<Company>AutoMapperLite</Company>
