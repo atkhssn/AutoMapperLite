@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoMapperLite vs AutoMapper vs Mapster — Comparison</title>
+<meta name="description" content="A factual, feature-level comparison of AutoMapperLite against AutoMapper and Mapster: licensing, dependencies, LINQ projection, and when to choose which.">
+<link rel="canonical" href="https://automapperlite.atkhssn.info/comparison.html">
+<meta name="robots" content="index, follow">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+<link rel="shortcut icon" href="assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#3457d5">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AutoMapperLite">
+<meta property="og:title" content="AutoMapperLite vs AutoMapper vs Mapster — Comparison">
+<meta property="og:description" content="A factual, feature-level comparison of AutoMapperLite against AutoMapper and Mapster: licensing, dependencies, LINQ projection, and when to choose which.">
+<meta property="og:url" content="https://automapperlite.atkhssn.info/comparison.html">
+<meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AutoMapperLite vs AutoMapper vs Mapster — Comparison">
+<meta name="twitter:description" content="A factual, feature-level comparison of AutoMapperLite against AutoMapper and Mapster: licensing, dependencies, LINQ projection, and when to choose which.">
+<meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
+
+<link rel="stylesheet" href="assets/styles.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://automapperlite.atkhssn.info/" },
+    { "@type": "ListItem", "position": 2, "name": "Comparison", "item": "https://automapperlite.atkhssn.info/comparison.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav-bar">
+    <a class="brand" href="index.html">
+      <img src="assets/favicon-48x48.png" alt="">
+      AutoMapperLite
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting Started</a>
+      <a href="guide.html">Guide</a>
+      <a href="api-reference.html">API Reference</a>
+      <a href="examples.html">Examples</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <section class="hero">
+      <h1>AutoMapperLite vs. AutoMapper vs. Mapster</h1>
+      <p class="lead">A feature-level comparison to help you choose the right tool. No unverified performance claims about other projects.</p>
+    </section>
+
+    <section id="table">
+      <h2>Feature comparison</h2>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Capability</th><th>AutoMapperLite</th><th>AutoMapper</th><th>Mapster</th></tr></thead>
+        <tbody>
+          <tr><td>License</td><td>MIT, free</td><td>Commercial license required above revenue threshold</td><td>MIT, free</td></tr>
+          <tr><td>Runtime mapping strategy</td><td>Reflection + cached metadata</td><td>Compiled expressions</td><td>Compiled expressions / source generators</td></tr>
+          <tr><td>Dependency footprint</td><td>One small package (<code>Microsoft.Extensions.DependencyInjection.Abstractions</code>)</td><td>Larger, more moving parts</td><td>Small</td></tr>
+          <tr><td>LINQ <code>IQueryable</code> projection (<code>ProjectTo</code>)</td><td>No</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Convention-based auto-mapping</td><td>Same-name, same-type properties</td><td>Extensive convention engine</td><td>Extensive convention engine</td></tr>
+          <tr><td><code>ForMember</code> / custom member mapping</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Deep nested destination paths</td><td>Yes (<code>ForPath</code>)</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Collection mapping</td><td>Yes, incl. nested <code>List&lt;T&gt;</code> properties</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Dependency injection integration</td><td>Built in (<code>AddAutoMapperLite</code>)</td><td>Via separate package</td><td>Via separate package</td></tr>
+          <tr><td>.NET targets</td><td>net6.0 – net10.0</td><td>Broad, actively maintained</td><td>Broad, actively maintained</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section id="when">
+      <h2>When to choose which</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>Choose AutoMapperLite</h3>
+          <p>You want straightforward DTO/entity mapping with a minimal dependency footprint and no commercial licensing considerations, and don't need LINQ projection.</p>
+        </div>
+        <div class="card">
+          <h3>Choose AutoMapper</h3>
+          <p>You need <code>ProjectTo</code>-style LINQ projection, a large convention/configuration surface, or already depend on its ecosystem.</p>
+        </div>
+        <div class="card">
+          <h3>Choose Mapster</h3>
+          <p>You want compiled-expression or source-generator performance with a broad feature set and are comfortable benchmarking it against your specific workload.</p>
+        </div>
+      </div>
+      <p>See <a href="performance.html">Performance</a> for AutoMapperLite's own measured numbers, and the note there on why we don't publish head-to-head speed claims against these projects.</p>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <p class="footer-heading">Docs</p>
+        <ul>
+          <li><a href="getting-started.html">Getting Started</a></li>
+          <li><a href="guide.html">Guide</a></li>
+          <li><a href="api-reference.html">API Reference</a></li>
+          <li><a href="examples.html">Examples</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Project</p>
+        <ul>
+          <li><a href="performance.html">Performance</a></li>
+          <li><a href="comparison.html">Comparison</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Open Source</p>
+        <ul>
+          <li><a href="resources.html#license">License (MIT)</a></li>
+          <li><a href="resources.html#contributing">Contributing</a></li>
+          <li><a href="resources.html#security">Security</a></li>
+          <li><a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Author</p>
+        <ul>
+          <li><a href="https://atkhssn.info">Atik Hassan</a></li>
+          <li><a href="mailto:atik.hassan@outlook.com">Email</a></li>
+          <li><a href="https://www.nuget.org/packages/AutoMapperLite">NuGet</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>
+        AutoMapperLite v4.0.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

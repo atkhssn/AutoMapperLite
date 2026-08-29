@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changelog — AutoMapperLite</title>
+<meta name="description" content="Release history for AutoMapperLite. 4.0.1 is the current official release; all prior versions are deprecated.">
+<link rel="canonical" href="https://automapperlite.atkhssn.info/changelog.html">
+<meta name="robots" content="index, follow">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+<link rel="shortcut icon" href="assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#3457d5">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AutoMapperLite">
+<meta property="og:title" content="Changelog — AutoMapperLite">
+<meta property="og:description" content="Release history for AutoMapperLite. 4.0.1 is the current official release; all prior versions are deprecated.">
+<meta property="og:url" content="https://automapperlite.atkhssn.info/changelog.html">
+<meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Changelog — AutoMapperLite">
+<meta name="twitter:description" content="Release history for AutoMapperLite. 4.0.1 is the current official release; all prior versions are deprecated.">
+<meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
+
+<link rel="stylesheet" href="assets/styles.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://automapperlite.atkhssn.info/" },
+    { "@type": "ListItem", "position": 2, "name": "Changelog", "item": "https://automapperlite.atkhssn.info/changelog.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav-bar">
+    <a class="brand" href="index.html">
+      <img src="assets/favicon-48x48.png" alt="">
+      AutoMapperLite
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting Started</a>
+      <a href="guide.html">Guide</a>
+      <a href="api-reference.html">API Reference</a>
+      <a href="examples.html">Examples</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <section class="hero">
+      <h1>Changelog</h1>
+      <p class="lead">Release history for AutoMapperLite. Full detail also maintained in <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/CHANGELOG.md">CHANGELOG.md</a>.</p>
+    </section>
+
+    <section id="v4-0-1">
+      <h2>4.0.1 <span class="badge">current release</span> — 2026-08-29</h2>
+      <p>Official rebrand and release. <strong>All versions prior to 4.0.1 are deprecated</strong> — upgrade.</p>
+      <ul>
+        <li>Official project website: <a href="https://automapperlite.atkhssn.info">automapperlite.atkhssn.info</a></li>
+        <li>New visual identity: icon, favicons, app icons, social preview images, light/dark logo lockups</li>
+        <li>Full XML documentation comments on the public API (IntelliSense support)</li>
+        <li>NuGet package metadata overhauled: accurate description, project URL, refined tags</li>
+        <li>Static documentation site expanded: Getting Started, Guide, Performance, Comparison, FAQ, SEO/AEO metadata, structured data</li>
+        <li>Carries forward every 3.0.x fix below — no public API breaking changes since 3.0.3</li>
+      </ul>
+    </section>
+
+    <section id="v3-0-3">
+      <h2>3.0.3 — 2026-08-29 <span class="badge badge-warn">deprecated</span></h2>
+      <ul>
+        <li>Multi-targets net6.0/net7.0/net8.0/net9.0/net10.0 (previously net8.0 only)</li>
+        <li>Fixed: mapping to a value-type (struct) destination silently produced an unpopulated struct</li>
+        <li>Fixed: a List&lt;T&gt; destination property was never auto-mapped even when a map was registered for the item types</li>
+        <li>Hardened MapperConfig and DI registration for concurrent use</li>
+        <li>Reduced mapping-hot-path allocations and reflection overhead (~3.3-4x faster, ~6.5-8x less allocation)</li>
+        <li>Clearer exception when a ForMember/ForPath function returns an incompatible value</li>
+        <li>Fixed dotnet pack failing on a clean multi-targeted tree</li>
+      </ul>
+    </section>
+
+    <section id="v3-0-2">
+      <h2>3.0.2 <span class="badge badge-warn">deprecated</span></h2>
+      <ul>
+        <li>Fixed: multiple ForPath calls under the same top-level destination property now all apply, instead of only the first</li>
+      </ul>
+    </section>
+
+    <section id="v3-0-1">
+      <h2>3.0.1 <span class="badge badge-warn">deprecated</span></h2>
+      <ul>
+        <li>Added ForPath and ForMember support</li>
+        <li>Improved collection mapping (List&lt;T&gt;)</li>
+        <li>Simplified usage with Map&lt;TDestination&gt;(TSource) format</li>
+        <li>Support for nested property mapping and configuration profiles</li>
+      </ul>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <p class="footer-heading">Docs</p>
+        <ul>
+          <li><a href="getting-started.html">Getting Started</a></li>
+          <li><a href="guide.html">Guide</a></li>
+          <li><a href="api-reference.html">API Reference</a></li>
+          <li><a href="examples.html">Examples</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Project</p>
+        <ul>
+          <li><a href="performance.html">Performance</a></li>
+          <li><a href="comparison.html">Comparison</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Open Source</p>
+        <ul>
+          <li><a href="resources.html#license">License (MIT)</a></li>
+          <li><a href="resources.html#contributing">Contributing</a></li>
+          <li><a href="resources.html#security">Security</a></li>
+          <li><a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Author</p>
+        <ul>
+          <li><a href="https://atkhssn.info">Atik Hassan</a></li>
+          <li><a href="mailto:atik.hassan@outlook.com">Email</a></li>
+          <li><a href="https://www.nuget.org/packages/AutoMapperLite">NuGet</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>
+        AutoMapperLite v4.0.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

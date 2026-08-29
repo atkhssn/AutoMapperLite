@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Performance & Benchmarks — AutoMapperLite</title>
+<meta name="description" content="Real, measured BenchmarkDotNet results for AutoMapperLite's mapping hot path: ~3.3-4x faster and ~6.5-8x less allocation after the 3.0.3 optimization work.">
+<link rel="canonical" href="https://automapperlite.atkhssn.info/performance.html">
+<meta name="robots" content="index, follow">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+<link rel="shortcut icon" href="assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#3457d5">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AutoMapperLite">
+<meta property="og:title" content="Performance & Benchmarks — AutoMapperLite">
+<meta property="og:description" content="Real, measured BenchmarkDotNet results for AutoMapperLite's mapping hot path: ~3.3-4x faster and ~6.5-8x less allocation after the 3.0.3 optimization work.">
+<meta property="og:url" content="https://automapperlite.atkhssn.info/performance.html">
+<meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Performance & Benchmarks — AutoMapperLite">
+<meta name="twitter:description" content="Real, measured BenchmarkDotNet results for AutoMapperLite's mapping hot path: ~3.3-4x faster and ~6.5-8x less allocation after the 3.0.3 optimization work.">
+<meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
+
+<link rel="stylesheet" href="assets/styles.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://automapperlite.atkhssn.info/" },
+    { "@type": "ListItem", "position": 2, "name": "Performance", "item": "https://automapperlite.atkhssn.info/performance.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav-bar">
+    <a class="brand" href="index.html">
+      <img src="assets/favicon-48x48.png" alt="">
+      AutoMapperLite
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting Started</a>
+      <a href="guide.html">Guide</a>
+      <a href="api-reference.html">API Reference</a>
+      <a href="examples.html">Examples</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <section class="hero">
+      <h1>Performance &amp; Benchmarks</h1>
+      <p class="lead">Real numbers from this repository's own BenchmarkDotNet suite — not marketing claims.</p>
+    </section>
+
+    <section id="methodology">
+      <h2>Methodology</h2>
+      <p>
+        Benchmarks live in <code>AutoMapperLite.Benchmarks</code> and run with
+        <a href="https://github.com/dotnet/BenchmarkDotNet">BenchmarkDotNet</a> in Release configuration.
+        The numbers below compare AutoMapperLite 3.0.1 (before the mapping-hot-path optimization work)
+        against 3.0.3 (after it); 4.0.1 carries the same mapping engine forward unchanged.
+      </p>
+      <pre><code>dotnet run --project AutoMapperLite.Benchmarks -c Release</code></pre>
+      <p>Environment: BenchmarkDotNet v0.14.0, Windows 11, .NET 8.0.30, X64 RyuJIT AVX2.</p>
+    </section>
+
+    <section id="results">
+      <h2>Results</h2>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Benchmark</th><th>Before</th><th>After</th><th>Speedup</th><th>Alloc before</th><th>Alloc after</th><th>Alloc reduction</th></tr></thead>
+        <tbody>
+          <tr><td>Map a simple object</td><td>734.6&nbsp;ns</td><td>205.3&nbsp;ns</td><td>~3.6x</td><td>704&nbsp;B</td><td>88&nbsp;B</td><td>~8.0x</td></tr>
+          <tr><td>Map a nested object</td><td>1,527.4&nbsp;ns</td><td>377.5&nbsp;ns</td><td>~4.0x</td><td>1,144&nbsp;B</td><td>168&nbsp;B</td><td>~6.8x</td></tr>
+          <tr><td>Map a 100-item collection</td><td>70,395.6&nbsp;ns</td><td>21,139.8&nbsp;ns</td><td>~3.3x</td><td>72,732&nbsp;B</td><td>11,128&nbsp;B</td><td>~6.5x</td></tr>
+        </tbody>
+        <caption>Mean time and managed allocation per call. Lower is better for all columns.</caption>
+      </table>
+      </div>
+    </section>
+
+    <section id="why">
+      <h2>Why it got faster</h2>
+      <p>The mapping engine is still reflection-based (no runtime IL/expression compilation), but it now caches what used to be re-resolved on every single call:</p>
+      <ul>
+        <li><code>MakeGenericMethod</code>/<code>GetMethod</code> results for the internal mapping methods, cached per type pair — previously re-run once <em>per collection item</em>.</li>
+        <li><code>Type.GetProperties()</code> results, cached per type.</li>
+        <li>Source-property-by-name lookups, cached per type as a dictionary instead of a linear <code>GetProperty(name)</code> reflection call.</li>
+        <li>Nested <code>ForPath</code> key groupings, computed once per <code>MapBuilder</code> instead of re-scanned with LINQ on every mapped object.</li>
+      </ul>
+      <p>See <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/CLAUDE.md">CLAUDE.md</a> in the repository for the full technical breakdown.</p>
+    </section>
+
+    <section id="honest-note">
+      <h2>An honest note on comparisons</h2>
+      <p>
+        We have not benchmarked AutoMapperLite head-to-head against AutoMapper or Mapster, and we won't
+        publish speed claims about those projects without real, reproducible numbers. If raw peak
+        throughput for large or complex mapping graphs is your primary concern, benchmark your actual
+        workload against the alternatives directly — see the <a href="comparison.html">comparison</a> page
+        for a feature-level (not performance) comparison.
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <p class="footer-heading">Docs</p>
+        <ul>
+          <li><a href="getting-started.html">Getting Started</a></li>
+          <li><a href="guide.html">Guide</a></li>
+          <li><a href="api-reference.html">API Reference</a></li>
+          <li><a href="examples.html">Examples</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Project</p>
+        <ul>
+          <li><a href="performance.html">Performance</a></li>
+          <li><a href="comparison.html">Comparison</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Open Source</p>
+        <ul>
+          <li><a href="resources.html#license">License (MIT)</a></li>
+          <li><a href="resources.html#contributing">Contributing</a></li>
+          <li><a href="resources.html#security">Security</a></li>
+          <li><a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Author</p>
+        <ul>
+          <li><a href="https://atkhssn.info">Atik Hassan</a></li>
+          <li><a href="mailto:atik.hassan@outlook.com">Email</a></li>
+          <li><a href="https://www.nuget.org/packages/AutoMapperLite">NuGet</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>
+        AutoMapperLite v4.0.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,11 +1,25 @@
-﻿# AutoMapperLite
+﻿<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
+    <img src="docs/assets/logo-light.png" alt="AutoMapperLite" width="360">
+  </picture>
+</p>
 
-A lightweight, customizable object-to-object mapping library for .NET projects.  
-Designed for internal use in your projects to simplify DTO and entity mapping with easy-to-use profiles, support for nested properties, and flexible configuration.
+<p align="center">
+  <strong>v4.0.1</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
+  <a href="https://automapperlite.atkhssn.info">automapperlite.atkhssn.info</a>
+</p>
+
+# AutoMapperLite
+
+A lightweight, customizable object-to-object mapping library for .NET projects.
+Designed to simplify DTO and entity mapping with easy-to-use profiles, support for nested properties, and flexible configuration — created and maintained by [Atik Hassan](https://atkhssn.info).
 
 Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 
-📖 Full documentation (Quick Start, API reference, runnable examples): [`docs/index.html`](docs/index.html) — open it locally in a browser, or enable GitHub Pages on this repo (Settings → Pages → deploy from `/docs`) to serve it live.
+> **4.0.1 is the current official release.** All prior versions (3.x and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
+
+📖 Full documentation (Getting Started, API reference, usage guide, performance, FAQ, comparison): **[automapperlite.atkhssn.info](https://automapperlite.atkhssn.info)** once deployed, or open [`docs/index.html`](docs/index.html) locally in a browser.
 
 ---
 
@@ -27,7 +41,7 @@ Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 Install the NuGet package in your project:
 
 ```bash
-dotnet add package AutoMapperLite --version 3.0.3
+dotnet add package AutoMapperLite --version 4.0.1
 ```
 
 ### 1. Register AutoMapperLite in your DI container
@@ -162,8 +176,10 @@ AutoMapperLite/
 │
 ├── AutoMapperLite.Tests/ # xUnit test project
 ├── AutoMapperLite.Benchmarks/ # BenchmarkDotNet benchmark project
+├── docs/ # Static documentation site (deploys to automapperlite.atkhssn.info)
 │
 ├── README.md # This documentation file
+├── CHANGELOG.md # Release history
 ├── LICENSE # MIT License
 ├── CONTRIBUTING.md # Contribution guidelines
 ├── CODE_OF_CONDUCT.md # Contributor Covenant
@@ -193,15 +209,27 @@ subject to the conditions of the MIT License.
 
 ---
 
-## Contact
+## Frequently Asked Questions
 
-For questions or help, contact your internal dev team or maintainer.
+**Is AutoMapperLite free and open source?** Yes — MIT licensed, free for personal and commercial use. See [License](#license).
 
-Email: [atik.hassan@outlook.com](mailto:atik.hassan@outlook.com)
+**Which .NET versions are supported?** `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 
-GitHub: [AutoMapperLite](https://github.com/atkhssn/AutoMapperLite)
+**Is it thread-safe?** Yes — configuration (`CreateMap`) and mapping (`Map`) can both be used concurrently; see the concurrency tests in `AutoMapperLite.Tests`.
+
+**How does it compare to AutoMapper or Mapster?** AutoMapperLite is intentionally smaller in scope — no LINQ projection support, no runtime IL/expression compilation, just `CreateMap`/`ForMember`/`ForPath` and reflection-based mapping with cached metadata. Choose it when you want a minimal-dependency mapper for straightforward DTO/entity mapping; choose AutoMapper or Mapster for large projects needing LINQ `ProjectTo`, value converters, or maximum raw throughput.
+
+More questions answered in the [full FAQ](https://automapperlite.atkhssn.info/faq.html).
 
 ---
 
-Thank you for using **AutoMapperLite**!  
+## Contact
+
+Project: [AutoMapperLite](https://automapperlite.atkhssn.info) · [GitHub](https://github.com/atkhssn/AutoMapperLite)
+
+Author: [Atik Hassan](https://atkhssn.info) · [atik.hassan@outlook.com](mailto:atik.hassan@outlook.com)
+
+---
+
+Thank you for using **AutoMapperLite**!
 Happy Mapping 😊

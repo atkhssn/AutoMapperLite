@@ -5,6 +5,11 @@ using System.Reflection;
 
 namespace AutoMapperLite
 {
+    /// <summary>
+    /// Default <see cref="IMapper"/> implementation. Stateless beyond the injected
+    /// <see cref="IMapperConfig"/> — safe to use concurrently and safe to register
+    /// as a singleton.
+    /// </summary>
     public sealed class Mapper : IMapper
     {
         private static readonly MethodInfo MapSingleDefinition =
@@ -20,11 +25,15 @@ namespace AutoMapperLite
 
         private readonly IMapperConfig _config;
 
+        /// <summary>
+        /// Creates a mapper backed by the given, already-populated configuration.
+        /// </summary>
         public Mapper(IMapperConfig config)
         {
             _config = config;
         }
 
+        /// <inheritdoc />
         public TDestination Map<TDestination>(object? source)
         {
             if (source == null) return default!;

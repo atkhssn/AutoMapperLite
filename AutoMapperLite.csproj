@@ -4,32 +4,34 @@
 		<TargetFrameworks>net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<!-- NuGet Metadata -->
 		<PackageId>AutoMapperLite</PackageId>
-		<Version>3.0.3</Version>
+		<Version>4.0.1</Version>
 		<PackageReleaseNotes>
-			• Now multi-targets net6.0/net7.0/net8.0/net9.0/net10.0 (previously net8.0 only)
-			• Fixed: mapping to a value-type (struct) destination silently produced an
-			  unpopulated struct, because properties were set on transient boxed copies
-			• Fixed: a List&lt;T&gt; destination property was never auto-mapped even when
-			  a map was registered for the item types, only when one was registered for
-			  the exact List&lt;TSource&gt;/List&lt;TDestination&gt; pair (which nothing registers)
-			• Hardened MapperConfig and the DI registration for concurrent use
-			• Reduced mapping-hot-path allocations and reflection overhead by caching
-			  resolved PropertyInfo/MethodInfo instead of re-resolving them on every call
-			  (~3.3-4x faster, ~6.5-8x less allocation per map, measured via the repo's
+			AutoMapperLite 4.0.1 — current official release; all prior versions (3.x and
+			earlier) are deprecated.
+
+			• Official project website: https://automapperlite.atkhssn.info
+			• New visual identity (icon, favicons, app icons, social preview images)
+			• Full XML documentation included for the public API (IntelliSense support)
+			• Carries forward every 3.0.x fix: struct-destination mapping, nested
+			  List&lt;T&gt; property auto-mapping, multi-ForPath application, DI/config
+			  thread-safety, and the mapping-hot-path performance work (~3.3-4x faster,
+			  ~6.5-8x less allocation per map versus 3.0.1, measured via the repo's
 			  BenchmarkDotNet suite)
-			• Clearer exception when a ForMember/ForPath mapping function returns a value
-			  incompatible with the destination property
+			• No public API breaking changes since 3.0.3
 		</PackageReleaseNotes>
 		<Authors>Atik Hassan</Authors>
 		<Company>AutoMapperLite</Company>
-		<Description>A lightweight object-to-object mapper alternative to AutoMapper.</Description>
-		<PackageTags>mapper reflection automapperlite lightweight automapper objectmapper</PackageTags>
+		<Description>AutoMapperLite is a lightweight, reflection-based object-to-object mapper for .NET — a small, dependency-minimal alternative to AutoMapper for mapping DTOs and entities. Targets net6.0 through net10.0. Features fluent CreateMap/ForMember/ForPath profiles, nested object and List&lt;T&gt; collection mapping, thread-safe configuration, and singleton-friendly dependency injection via AddAutoMapperLite. Built for projects that want simple, fast, low-allocation object mapping without a large dependency footprint. Official site: https://automapperlite.atkhssn.info</Description>
+		<PackageTags>mapper;object mapper;object mapping;dto mapper;dto mapping;automapper alternative;mapster alternative;dotnet mapper;csharp mapper;lightweight mapper;reflection mapper</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://automapperlite.atkhssn.info</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/atkhssn/AutoMapperLite</RepositoryUrl>
-		<Copyright>© 2025 Atik Hassan</Copyright>
+		<RepositoryType>git</RepositoryType>
+		<Copyright>© 2025-2026 Atik Hassan</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>

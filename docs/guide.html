@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide — AutoMapperLite</title>
+<meta name="description" content="In-depth AutoMapperLite guide: mapping order, profile configuration, collections, advanced ForMember/ForPath usage, dependency injection, and thread-safety.">
+<link rel="canonical" href="https://automapperlite.atkhssn.info/guide.html">
+<meta name="robots" content="index, follow">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+<link rel="shortcut icon" href="assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#3457d5">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AutoMapperLite">
+<meta property="og:title" content="Guide — AutoMapperLite">
+<meta property="og:description" content="In-depth AutoMapperLite guide: mapping order, profile configuration, collections, advanced ForMember/ForPath usage, dependency injection, and thread-safety.">
+<meta property="og:url" content="https://automapperlite.atkhssn.info/guide.html">
+<meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Guide — AutoMapperLite">
+<meta name="twitter:description" content="In-depth AutoMapperLite guide: mapping order, profile configuration, collections, advanced ForMember/ForPath usage, dependency injection, and thread-safety.">
+<meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
+
+<link rel="stylesheet" href="assets/styles.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://automapperlite.atkhssn.info/" },
+    { "@type": "ListItem", "position": 2, "name": "Guide", "item": "https://automapperlite.atkhssn.info/guide.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav-bar">
+    <a class="brand" href="index.html">
+      <img src="assets/favicon-48x48.png" alt="">
+      AutoMapperLite
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting Started</a>
+      <a href="guide.html" aria-current="page">Guide</a>
+      <a href="api-reference.html">API Reference</a>
+      <a href="examples.html">Examples</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <section class="hero">
+      <h1>Guide</h1>
+      <p class="lead">Mapping, configuration, collections, nested objects, dependency injection, and thread-safety — in depth.</p>
+    </section>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>On this page</h2>
+      <ul>
+        <li><a href="#mapping">Mapping basics</a></li>
+        <li><a href="#configuration">Configuration &amp; profiles</a></li>
+        <li><a href="#collections">Collections</a></li>
+        <li><a href="#advanced">Advanced usage</a></li>
+        <li><a href="#dependency-injection">Dependency injection</a></li>
+        <li><a href="#thread-safety">Thread-safety</a></li>
+      </ul>
+    </nav>
+
+    <section id="mapping">
+      <h2>Mapping basics</h2>
+      <p>
+        <code>IMapper.Map&lt;TDestination&gt;(source)</code> creates a new
+        <code>TDestination</code> and populates its public properties in this order,
+        per property:
+      </p>
+      <ol>
+        <li>An exact <code>ForMember</code> match for that property name, if registered.</li>
+        <li>A <code>ForPath</code> match nested under that property name, if registered.</li>
+        <li>Otherwise, auto-map from a source property with the <em>same name</em>: direct assignment if the types match exactly, or a recursive <code>Map</code> call if a map is registered for the two (possibly different) types — including when both are <code>List&lt;T&gt;</code> and a map is registered for the item types.</li>
+        <li>If none of the above apply, the destination property is left at its default value.</li>
+      </ol>
+      <p>See <a href="examples.html#basic">Examples → Basic mapping</a> for a runnable version of the auto-map case.</p>
+    </section>
+
+    <section id="configuration">
+      <h2>Configuration &amp; profiles</h2>
+      <p>
+        Mappings are registered by calling <code>IMapperConfig.CreateMap&lt;TSource, TDestination&gt;()</code>,
+        normally from inside a <code>Profile</code> subclass's <code>Configure</code> method.
+        <code>AddAutoMapperLite</code> discovers every concrete <code>Profile</code> in the given
+        assembly automatically — you don't register profiles individually.
+      </p>
+      <pre><code>public class MyMappingProfile : Profile
+{
+    public override void Configure(IMapperConfig config)
+    {
+        config.CreateMap&lt;Country, CountryViewModel&gt;();
+        config.CreateMap&lt;Organization, OrganizationViewModel&gt;();
+    }
+}</code></pre>
+      <p>You can split configuration across multiple <code>Profile</code> classes — all of them in the scanned assembly are applied.</p>
+    </section>
+
+    <section id="collections">
+      <h2>Collections</h2>
+      <p>Two distinct, related capabilities:</p>
+      <h3>Mapping a list directly</h3>
+      <pre><code>var result = mapper.Map&lt;List&lt;SimpleDestination&gt;&gt;(sourceList);</code></pre>
+      <h3>A <code>List&lt;T&gt;</code> destination property</h3>
+      <p>
+        As long as a map is registered for the item types, a <code>List&lt;T&gt;</code>
+        property is auto-mapped like any other property — see
+        <a href="examples.html#nested-collections">Examples → Nested collection properties</a>.
+      </p>
+    </section>
+
+    <section id="advanced">
+      <h2>Advanced usage</h2>
+      <h3>ForMember and ForPath must return the mapped value</h3>
+      <div class="note">
+        <code>ForMember</code>/<code>ForPath</code> functions must return a value already
+        assignable to the destination property's type. The library does not implicitly
+        convert types inside a custom mapping function — see
+        <a href="examples.html#nested-object">Examples → Nested object mapping</a> for the
+        correct pattern (closing over a <code>Mapper</code> built from the same config).
+      </div>
+      <h3>Deep nested paths</h3>
+      <p>
+        <code>ForPath</code> targets a destination property several levels deep, e.g.
+        <code>dest =&gt; dest.A.B.C</code>. Intermediate objects are instantiated
+        automatically. Multiple <code>ForPath</code> calls under the same top-level
+        property are all applied to the same nested instance — see
+        <a href="examples.html#forpath">Examples → Deep nested paths</a>.
+      </p>
+    </section>
+
+    <section id="dependency-injection">
+      <h2>Dependency injection</h2>
+      <p>
+        <code>AddAutoMapperLite</code> registers both <code>IMapperConfig</code> and
+        <code>IMapper</code> as <strong>singletons</strong>. This is intentional and safe:
+      </p>
+      <ul>
+        <li><code>MapperConfig</code> is backed by a <code>ConcurrentDictionary</code>, so registering (or reading) maps concurrently is safe.</li>
+        <li><code>Mapper</code> holds no per-request state beyond the injected config — there is nothing to isolate per request, so a singleton avoids allocating a new mapper instance for every DI scope.</li>
+      </ul>
+    </section>
+
+    <section id="thread-safety">
+      <h2>Thread-safety</h2>
+      <p>
+        Both mapping configuration and mapping itself are safe under concurrent use.
+        This is verified by dedicated concurrency tests in the repository's test suite
+        (thousands of parallel <code>Map</code> calls and parallel <code>CreateMap</code>
+        registrations), not just assumed from the implementation.
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <p class="footer-heading">Docs</p>
+        <ul>
+          <li><a href="getting-started.html">Getting Started</a></li>
+          <li><a href="guide.html">Guide</a></li>
+          <li><a href="api-reference.html">API Reference</a></li>
+          <li><a href="examples.html">Examples</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Project</p>
+        <ul>
+          <li><a href="performance.html">Performance</a></li>
+          <li><a href="comparison.html">Comparison</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Open Source</p>
+        <ul>
+          <li><a href="resources.html#license">License (MIT)</a></li>
+          <li><a href="resources.html#contributing">Contributing</a></li>
+          <li><a href="resources.html#security">Security</a></li>
+          <li><a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Author</p>
+        <ul>
+          <li><a href="https://atkhssn.info">Atik Hassan</a></li>
+          <li><a href="mailto:atik.hassan@outlook.com">Email</a></li>
+          <li><a href="https://www.nuget.org/packages/AutoMapperLite">NuGet</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>
+        AutoMapperLite v4.0.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

@@ -350,7 +350,7 @@ pre code {
 
 footer.site-footer {
   border-top: 1px solid var(--border);
-  padding: 2rem 0;
+  padding: 2.5rem 0 2rem;
   color: var(--fg-muted);
   font-size: 0.88rem;
 }
@@ -358,6 +358,111 @@ footer.site-footer {
 footer.site-footer a {
   color: var(--fg-muted);
   text-decoration: underline;
+}
+
+.footer-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.footer-cols .footer-heading {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--fg);
+}
+
+.footer-cols ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.footer-cols li {
+  margin: 0.4rem 0;
+}
+
+.footer-cols a {
+  text-decoration: none;
+}
+
+.footer-cols a:hover {
+  text-decoration: underline;
+}
+
+.footer-bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+}
+
+/* deprecation / status badges */
+.badge-warn {
+  background: #fff2e0;
+  color: #8a4b00;
+  border-color: #f0cf9e;
+}
+
+:root:not([data-theme="light"]) .badge-warn,
+:root[data-theme="dark"] .badge-warn {
+  background: #3a2c14;
+  color: #f0c07a;
+  border-color: #5a4522;
+}
+
+/* FAQ accordion */
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 0.75rem 0;
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+
+.faq-item summary {
+  cursor: pointer;
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::before {
+  content: "+";
+  display: inline-block;
+  width: 1.2em;
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.faq-item[open] summary::before {
+  content: "\2212";
+}
+
+.faq-item .faq-answer {
+  padding: 0 1.25rem 1.1rem;
+  color: var(--fg-muted);
+}
+
+.deprecated-note {
+  border-left: 4px solid #d98a2b;
+  background: #fff2e0;
+  padding: 0.85rem 1rem;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.93rem;
+  margin: 1rem 0;
+}
+
+:root:not([data-theme="light"]) .deprecated-note,
+:root[data-theme="dark"] .deprecated-note {
+  background: #3a2c14;
+  color: #f0d9b0;
 }
 
 @media (max-width: 640px) {

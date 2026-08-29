@@ -4,8 +4,18 @@ using System.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
+    /// <summary>
+    /// Dependency-injection registration for AutoMapperLite.
+    /// </summary>
     public static class ServiceCollectionExtensions
     {
+        /// <summary>
+        /// Scans <paramref name="assembly"/> for concrete <see cref="Profile"/> subclasses with a
+        /// public parameterless constructor, runs each one's <see cref="Profile.Configure"/> against
+        /// a shared <see cref="MapperConfig"/>, then registers <see cref="IMapperConfig"/> and
+        /// <see cref="IMapper"/> as singletons.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"><paramref name="assembly"/> is <see langword="null"/>.</exception>
         public static IServiceCollection AddAutoMapperLite(this IServiceCollection services, Assembly assembly)
         {
             ArgumentNullException.ThrowIfNull(assembly);
