@@ -41,5 +41,19 @@ namespace AutoMapperLite.Tests
             Assert.Throws<InvalidOperationException>(
                 () => config.GetMap<SimpleSource, SimpleDestination>());
         }
+
+        [Fact]
+        public void CreateMap_IsThreadSafe_UnderConcurrentRegistration()
+        {
+            var config = new MapperConfig();
+
+            Parallel.For(0, 500, i =>
+            {
+                config.CreateMap<SimpleSource, SimpleDestination>();
+                config.HasMap(typeof(SimpleSource), typeof(SimpleDestination));
+            });
+
+            Assert.True(config.HasMap(typeof(SimpleSource), typeof(SimpleDestination)));
+        }
     }
 }

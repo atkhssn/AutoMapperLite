@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-AutoMapperLite is a lightweight, reflection-based object-to-object mapper for .NET (a small AutoMapper alternative), published as an MIT-licensed NuGet library. The repo also contains an xUnit test project and a BenchmarkDotNet benchmark project alongside the library.
+AutoMapperLite is a lightweight, reflection-based object-to-object mapper for .NET (a small AutoMapper alternative), published as an MIT-licensed NuGet library. The repo also contains an xUnit test project, a BenchmarkDotNet benchmark project, and a static HTML documentation site (`docs/`) alongside the library.
+
+`docs/` is a hand-written, dependency-free static site (`index.html`, `api-reference.html`, `examples.html`, `assets/`) — no build step, no generator. Every code sample in `docs/examples.html` was executed and asserted against the real library before being written down (not just read for plausibility), because the README previously shipped a flagship example that looked reasonable but threw `InvalidOperationException` at runtime — see the `ForMember`/`ForPath` note further down. If you edit an example in `docs/`, re-run it (a throwaway console project referencing `AutoMapperLite.csproj` is enough) before trusting it. `docs/` is not currently deployed anywhere (no GitHub Pages / CI wired up) — it's meant to be opened locally or published later by enabling GitHub Pages against `/docs`.
 
 ## Commands
 
@@ -12,8 +14,11 @@ AutoMapperLite is a lightweight, reflection-based object-to-object mapper for .N
 # Build everything (library, tests, benchmarks)
 dotnet build AutoMapperLite.slnx
 
-# Pack the NuGet package (also happens automatically on build of the main
-# project, since GeneratePackageOnBuild is true in AutoMapperLite.csproj)
+# Pack the NuGet package — must be `dotnet pack`, not `dotnet build`.
+# GeneratePackageOnBuild is deliberately NOT set: with a multi-targeted
+# project it triggers a known MSBuild/NuGet ordering bug (NU5026 — "file to
+# be packed was not found on disk") when `dotnet pack` is later run directly
+# on a clean tree. Plain `dotnet build` no longer produces a .nupkg.
 dotnet pack AutoMapperLite.csproj -c Release
 
 # Run the test suite
@@ -24,29 +29,39 @@ dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj --filter "FullyQual
 
 # Run benchmarks (Release build required by BenchmarkDotNet)
 dotnet run --project AutoMapperLite.Benchmarks -c Release
+
+# Run the test suite against a specific target framework
+dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj -f net6.0
 ```
 
 Note: `AutoMapperLite.csproj` explicitly excludes the `AutoMapperLite.Tests/` and `AutoMapperLite.Benchmarks/` folders from its own compile globs (see the `Compile Remove` items) since those projects live as subdirectories of the main project's folder — keep those excludes in sync if the project layout changes.
+
+The library multi-targets `net6.0;net7.0;net8.0;net9.0;net10.0` and the test project mirrors the same TFM list so the suite actually runs (not just compiles) against every supported framework — all five runtimes are expected to be installed locally. The benchmark project stays single-targeted (net8.0); it's a dev-only tool, not shipped.
 
 ## Architecture
 
 The library has a small, fixed pipeline: **Profile → MapperConfig → MapBuilder → Mapper**.
 
 - `Interfaces/IMapper.cs`, `Interfaces/IMapperConfig.cs` — public contracts.
-- `Core/MapperConfig.cs` — holds all registered mappings in a `Dictionary<(Type source, Type dest), object>` keyed by the (source, destination) type pair. `CreateMap<TSource, TDestination>()` registers a new `MapBuilder<TSource, TDestination>`; `GetMap<TSource, TDestination>()` retrieves it (throws if missing); `HasMap` checks existence for a given type pair — used by `Mapper` to decide whether a mismatched-type property can be recursively mapped.
-- `Mapping/MapBuilder.cs` — fluent builder returned by `CreateMap`. `ForMember(dest => dest.X, src => ...)` and `ForPath(dest => dest.A.B.C, src => ...)` both resolve the destination expression into a dot-delimited string key (e.g. `"A.B.C"`) via `GetMemberPath`, and store a `Func<TSource, object?>` against that key in `MemberMappings`. `ForPath` is currently just an alias for `ForMember` — the "path" behavior comes entirely from how `Mapper` interprets keys containing dots.
+- `Core/MapperConfig.cs` — holds all registered mappings in a `ConcurrentDictionary<(Type source, Type dest), object>` keyed by the (source, destination) type pair (thread-safe so a `CreateMap` call can't corrupt state if it ever races with `GetMap`/`HasMap` reads against an already-published singleton config). `CreateMap<TSource, TDestination>()` registers a new `MapBuilder<TSource, TDestination>`; `GetMap<TSource, TDestination>()` retrieves it (throws if missing); `HasMap` checks existence for a given type pair — used by `Mapper` to decide whether a mismatched-type property can be recursively mapped.
+- `Mapping/MapBuilder.cs` — fluent builder returned by `CreateMap`. `ForMember(dest => dest.X, src => ...)` and `ForPath(dest => dest.A.B.C, src => ...)` both resolve the destination expression into a dot-delimited string key (e.g. `"A.B.C"`) via `GetMemberPath`, and store a `Func<TSource, object?>` against that key in `MemberMappings`. `ForPath` is currently just an alias for `ForMember` — the "path" behavior comes entirely from how `Mapper` interprets keys containing dots. `GetNestedKeys(topLevelProperty)` returns every registered key nested under a top-level property name, grouped once via a `Lazy<Dictionary<string, List<string>>>` (safe because `MemberMappings` is only ever written during `Profile.Configure()`, before any mapping runs) instead of re-scanning `MemberMappings.Keys` with LINQ on every mapped object.
 - `Mapping/Profile.cs` — abstract base class users subclass; `Configure(IMapperConfig)` is where `CreateMap` calls go.
-- `Core/Mapper.cs` — does the actual mapping via reflection, at both the public `Map<TDestination>(object source)` entry point and the private generic-typed workers:
+- `Core/Mapper.cs` — does the actual mapping via reflection, at both the public `Map<TDestination>(object? source)` entry point and the private generic-typed workers:
   - If `TDestination` is `List<T>`, it iterates the source `IEnumerable` and maps each element via a dynamically-constructed generic `MapSingle<TSource,TDestination>` call (source's *runtime* type is used as the generic arg, not the static type).
-  - `MapSingle<TSource, TDestination>` iterates the destination type's public instance properties and resolves each one in priority order: (1) an exact `MemberMappings` key match (`ForMember`), (2) a key that starts with `"PropName."` (nested `ForPath` mapping, handled by `ApplyNestedMapping`), (3) auto-map from a same-named source property — recursing into `Map<>` when the property types differ and a map is registered via `HasMap`, otherwise silently skipped.
+  - `MapSingle<TSource, TDestination>` iterates the destination type's public instance properties and resolves each one in priority order: (1) an exact `MemberMappings` key match (`ForMember`), (2) a key that starts with `"PropName."` (nested `ForPath` mapping, handled by `ApplyNestedMapping`), (3) auto-map from a same-named source property — recursing into `Map<>` when the property types differ and a map is registered via `HasMap`, either for the two property types directly, or (for `List<T>` properties) for their item types; otherwise silently skipped.
   - `ApplyNestedMapping` walks a dot-delimited path segment by segment, creating intermediate objects with `Activator.CreateInstance` as needed and applying any `MemberMappings` entry that matches the accumulated path prefix at each level.
-  - All property access is reflection-based (no compiled expression trees/caching), and all mapped types must have a public parameterless constructor since instances are created via `Activator.CreateInstance`.
-- `Extensions/ServiceCollectionExtensions.cs` — `AddAutoMapperLite(Assembly)` DI entry point: scans the given assembly for concrete `Profile` subclasses with a parameterless constructor, instantiates each and calls `Configure` against a single shared `MapperConfig`, then registers `IMapperConfig` as a singleton and `IMapper`/`Mapper` as scoped.
+  - Property access is still reflection-based (`PropertyInfo.GetValue`/`SetValue` — no compiled expression trees or delegate generation), but the *resolution* of that reflection metadata is cached process-wide in static `ConcurrentDictionary` fields: `GetProperties()` results per `Type`, a source-properties-by-name `Dictionary` per `Type` (avoids repeated `GetProperty(name)` lookups and sidesteps `AmbiguousMatchException` on shadowed `new` members — last one wins), and the closed generic `MethodInfo` for `MapSingle<,>`/`Map<>` per type pair (avoids repeated `MakeGenericMethod` + `GetMethod` calls, which were previously re-done on *every single element* of a mapped collection). All mapped types must have a public parameterless constructor since instances are created via `Activator.CreateInstance`.
+  - `MapSingle` holds its destination as `object` (boxed once) rather than as a `TDestination` local, so that when `TDestination` is a value type, repeated `PropertyInfo.SetValue` calls mutate the one shared box instead of discarding each other on transient boxed copies.
+  - Custom mapping functions (`ForMember`/`ForPath`) run through `SetMappedValue`, which wraps `PropertyInfo.SetValue` and rethrows a descriptive `InvalidOperationException` (naming the destination path and the mismatched types) instead of a bare reflection `ArgumentException` when a user-supplied lambda returns an incompatible value.
+- `Extensions/ServiceCollectionExtensions.cs` — `AddAutoMapperLite(Assembly)` DI entry point: scans the given assembly for concrete `Profile` subclasses with a parameterless constructor, instantiates each and calls `Configure` against a single shared `MapperConfig`, then registers `IMapperConfig` and `IMapper`/`Mapper` **both as singletons** — `Mapper` holds no per-request state beyond the (already-singleton) config, so scoping it would only add allocation for no benefit.
 
 ## Key constraints to preserve when modifying
 
-- Target framework is `net8.0` with nullable reference types and implicit usings enabled.
-- `GeneratePackageOnBuild` is `true`, so every `dotnet build` repacks the NuGet package — bump `Version` in `AutoMapperLite.csproj` (and update `PackageReleaseNotes`) when shipping a change intended for release.
-- Public API surface (`IMapper`, `IMapperConfig`, `MapBuilder<,>`, `Profile`) is what consuming projects bind against directly; changes here are breaking changes for NuGet consumers.
+- Target frameworks are `net6.0;net7.0;net8.0;net9.0;net10.0` with nullable reference types and implicit usings enabled. `Microsoft.Extensions.DependencyInjection(.Abstractions)` is pinned to `8.0.x` rather than a `9.x` release because `9.x` declares (and warns on) dropped support for net6.0/net7.0 even though the assembly itself is netstandard2.0-compatible; re-check this pin before bumping that dependency.
+- Packing requires `dotnet pack -c Release`, not `dotnet build` (see the note under Commands above) — bump `Version` in `AutoMapperLite.csproj` (and update `PackageReleaseNotes`) when shipping a change intended for release.
+- Public API surface (`IMapper`, `IMapperConfig`, `MapBuilder<,>`, `Profile`) is what consuming projects bind against directly; changes here are breaking changes for NuGet consumers. `IMapper.Map<TDestination>`'s `source` parameter is `object?` (not `object`) — this is intentionally nullable since the method has always accepted and handled `null` at runtime.
 - `MapBuilder<,>.MemberMappings` is `internal`; `AutoMapperLite.csproj` grants `AutoMapperLite.Tests` access via `InternalsVisibleTo` so tests can assert on registered mapping keys directly.
 - `Mapper.MapSingle` applies *every* `MemberMappings` key prefixed with a given top-level destination property to the same nested instance (see `AutoMapperLite.Tests/MapperTests.cs::Map_UsesForPath_ForDeeplyNestedDestination`), so multiple `ForPath` calls under the same top-level property all take effect. Preserve this when touching the nested-mapping branch in `Core/Mapper.cs`.
+- The reflection-metadata caches in `Core/Mapper.cs` (`MapSingleMethodCache`, `MapMethodCache`, `PublicPropertiesCache`, `PropertiesByNameCache`) are `static` and process-wide by design (`Type` → metadata is a process-wide invariant), not per-`Mapper`-instance — don't move them to instance fields, that would defeat the point of caching across DI-resolved `Mapper` instances/scopes.
+- A source item that is `null` inside a collection passed to `Map<List<TDestination>>` will `NullReferenceException` on `item.GetType()` — this is a pre-existing limitation, not something recently introduced; treat it as a known edge case rather than "fixing" it silently if you touch that loop, since there's no single obviously-correct behavior for a null list element (skip it? add `null` to the result? both are behavior changes).
+- `ForMember`/`ForPath` functions must return the *already-mapped* value, not the raw source sub-object — the library never implicitly converts types inside a custom mapping function. When source/destination property types differ, the function has to call back into a `Mapper` itself (e.g. `src => mapper.Map<CountryViewModel>(src.Country)`, capturing a `Mapper` built from the same `config` in the closure). The README's flagship "Create Mapping Profiles" example previously got this wrong (passed the raw `Country` straight through) and threw `InvalidOperationException` at runtime for *anyone who copy-pasted it* — verified by actually running it, not just by reading the code. If you touch that example again, re-run it, don't just eyeball it.

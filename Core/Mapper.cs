@@ -1,11 +1,23 @@
-﻿using AutoMapperLite.Interfaces;
+using AutoMapperLite.Interfaces;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace AutoMapperLite
 {
     public sealed class Mapper : IMapper
     {
+        private static readonly MethodInfo MapSingleDefinition =
+            typeof(Mapper).GetMethod(nameof(MapSingle), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        private static readonly MethodInfo MapDefinition =
+            typeof(Mapper).GetMethod(nameof(Map), BindingFlags.Public | BindingFlags.Instance)!;
+
+        private static readonly ConcurrentDictionary<(Type Source, Type Destination), MethodInfo> MapSingleMethodCache = new();
+        private static readonly ConcurrentDictionary<Type, MethodInfo> MapMethodCache = new();
+        private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PublicPropertiesCache = new();
+        private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> PropertiesByNameCache = new();
+
         private readonly IMapperConfig _config;
 
         public Mapper(IMapperConfig config)
@@ -13,7 +25,7 @@ namespace AutoMapperLite
             _config = config;
         }
 
-        public TDestination Map<TDestination>(object source)
+        public TDestination Map<TDestination>(object? source)
         {
             if (source == null) return default!;
             var destType = typeof(TDestination);
@@ -27,9 +39,8 @@ namespace AutoMapperLite
                 var resultList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(itemType))!;
                 foreach (var item in sourceEnum)
                 {
-                    var mapMethod = GetType().GetMethod(nameof(MapSingle), BindingFlags.NonPublic | BindingFlags.Instance)!
-                        .MakeGenericMethod(item.GetType(), itemType);
-                    resultList.Add(mapMethod.Invoke(this, new[] { item })!);
+                    var mapMethod = GetMapSingleMethod(item.GetType(), itemType);
+                    resultList.Add(mapMethod.Invoke(this, new object[] { item })!);
                 }
                 return (TDestination)resultList;
             }
@@ -39,19 +50,61 @@ namespace AutoMapperLite
 
         private TDestination MapSingleInternal<TDestination>(object source)
         {
-            var method = GetType().GetMethod(nameof(MapSingle), BindingFlags.NonPublic | BindingFlags.Instance)!
-                .MakeGenericMethod(source.GetType(), typeof(TDestination));
-            return (TDestination)method.Invoke(this, new[] { source })!;
+            var method = GetMapSingleMethod(source.GetType(), typeof(TDestination));
+            return (TDestination)method.Invoke(this, new object[] { source })!;
         }
 
-        private bool IsGenericList(Type type) =>
+        private static bool IsGenericList(Type type) =>
             type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>);
+
+        private static bool TryGetListItemTypes(Type sourceType, Type destType, out Type sourceItemType, out Type destItemType)
+        {
+            if (IsGenericList(sourceType) && IsGenericList(destType))
+            {
+                sourceItemType = sourceType.GetGenericArguments()[0];
+                destItemType = destType.GetGenericArguments()[0];
+                return true;
+            }
+
+            sourceItemType = destItemType = typeof(object);
+            return false;
+        }
+
+        private static MethodInfo GetMapSingleMethod(Type sourceType, Type destinationType) =>
+            MapSingleMethodCache.GetOrAdd((sourceType, destinationType),
+                key => MapSingleDefinition.MakeGenericMethod(key.Source, key.Destination));
+
+        private static MethodInfo GetMapMethod(Type destinationType) =>
+            MapMethodCache.GetOrAdd(destinationType, t => MapDefinition.MakeGenericMethod(t));
+
+        private static PropertyInfo[] GetPublicProperties(Type type) =>
+            PublicPropertiesCache.GetOrAdd(type, t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance));
+
+        private static Dictionary<string, PropertyInfo> GetPropertiesByName(Type type) =>
+            PropertiesByNameCache.GetOrAdd(type, t =>
+            {
+                var props = GetPublicProperties(t);
+                var byName = new Dictionary<string, PropertyInfo>(props.Length);
+                foreach (var p in props)
+                {
+                    byName[p.Name] = p; // last one wins for shadowed ("new") members
+                }
+                return byName;
+            });
 
         private TDestination MapSingle<TSource, TDestination>(TSource source)
         {
             var builder = _config.GetMap<TSource, TDestination>();
-            var destination = Activator.CreateInstance<TDestination>()!;
-            var destProps = typeof(TDestination).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var destinationType = typeof(TDestination);
+
+            // Boxed once and mutated in place for the rest of this method — if TDestination
+            // is a value type, calling PropertyInfo.SetValue against a freshly-boxed copy on
+            // every call (as opposed to this single shared box) would silently discard every
+            // assignment once unboxed back into a TDestination local.
+            object destination = Activator.CreateInstance(destinationType)!;
+
+            var destProps = GetPublicProperties(destinationType);
+            var sourcePropsByName = GetPropertiesByName(typeof(TSource));
 
             foreach (var prop in destProps)
             {
@@ -60,59 +113,70 @@ namespace AutoMapperLite
                 // 1. Handle ForMember / ForPath style mapping
                 if (builder.MemberMappings.TryGetValue(path, out var customMap))
                 {
-                    prop.SetValue(destination, customMap(source));
+                    SetMappedValue(prop, destination, customMap(source), path);
                     continue;
                 }
 
                 // 2. Handle nested object mapping (ForPath style)
-                var nestedKeys = builder.MemberMappings.Keys.Where(k => k.StartsWith(path + ".")).ToList();
+                var nestedKeys = builder.GetNestedKeys(path);
                 if (nestedKeys.Count > 0)
                 {
                     var nestedInstance = Activator.CreateInstance(prop.PropertyType)!;
-                    foreach (var nestedKey in nestedKeys)
+                    for (var i = 0; i < nestedKeys.Count; i++)
                     {
-                        ApplyNestedMapping(nestedInstance, source, nestedKey, builder);
+                        ApplyNestedMapping(nestedInstance, source, nestedKeys[i], builder);
                     }
                     prop.SetValue(destination, nestedInstance);
                     continue;
                 }
 
                 // 3. Auto-map same-name properties
-                var sourceProp = typeof(TSource).GetProperty(prop.Name);
-                if (sourceProp != null && sourceProp.CanRead && prop.CanWrite)
-                {
-                    var value = sourceProp.GetValue(source);
-                    if (value == null) continue;
+                if (!sourcePropsByName.TryGetValue(prop.Name, out var sourceProp) || !sourceProp.CanRead || !prop.CanWrite)
+                    continue;
 
-                    // Check if type needs mapping
-                    if (prop.PropertyType != sourceProp.PropertyType)
-                    {
-                        if (_config.HasMap(sourceProp.PropertyType, prop.PropertyType))
-                        {
-                            var mapMethod = typeof(Mapper)
-                                .GetMethod(nameof(Map), BindingFlags.Public | BindingFlags.Instance)!
-                                .MakeGenericMethod(prop.PropertyType);
-                            var mappedValue = mapMethod.Invoke(this, new[] { value });
-                            prop.SetValue(destination, mappedValue);
-                        }
-                        else
-                        {
-                            // Skip invalid assignment
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        // Direct assignment if types match Atik
-                        prop.SetValue(destination, value);
-                    }
+                var value = sourceProp.GetValue(source);
+                if (value == null) continue;
+
+                if (prop.PropertyType == sourceProp.PropertyType)
+                {
+                    prop.SetValue(destination, value);
+                    continue;
                 }
+
+                // Type mismatch: only map if a matching type map is registered, either
+                // directly, or (for List<T> properties) between the two item types.
+                var canMap = _config.HasMap(sourceProp.PropertyType, prop.PropertyType)
+                    || (TryGetListItemTypes(sourceProp.PropertyType, prop.PropertyType, out var itemSourceType, out var itemDestType)
+                        && _config.HasMap(itemSourceType, itemDestType));
+
+                if (canMap)
+                {
+                    var mapMethod = GetMapMethod(prop.PropertyType);
+                    var mappedValue = mapMethod.Invoke(this, new object[] { value });
+                    prop.SetValue(destination, mappedValue);
+                }
+                // else: no registered map for this type pair — skip invalid assignment
             }
 
-            return destination;
+            return (TDestination)destination;
         }
 
-        private void ApplyNestedMapping<TSource, TDestination>(
+        private static void SetMappedValue(PropertyInfo prop, object destination, object? value, string propertyPath)
+        {
+            try
+            {
+                prop.SetValue(destination, value);
+            }
+            catch (Exception ex) when (ex is ArgumentException or TargetException)
+            {
+                var actualType = value?.GetType().Name ?? "null";
+                throw new InvalidOperationException(
+                    $"The mapping configured for '{propertyPath}' produced a value of type '{actualType}' " +
+                    $"that cannot be assigned to property type '{prop.PropertyType.Name}'.", ex);
+            }
+        }
+
+        private static void ApplyNestedMapping<TSource, TDestination>(
             object nestedInstance,
             TSource source,
             string path,
@@ -130,7 +194,7 @@ namespace AutoMapperLite
                 var fullKey = string.Join(".", segments.Take(i + 1));
                 if (builder.MemberMappings.TryGetValue(fullKey, out var mapFunc))
                 {
-                    prop.SetValue(current, mapFunc(source));
+                    SetMappedValue(prop, current, mapFunc(source), fullKey);
                 }
 
                 if (prop.GetValue(current) == null)

@@ -1,10 +1,15 @@
-﻿using AutoMapperLite.Interfaces;
+using AutoMapperLite.Interfaces;
+using System.Collections.Concurrent;
 
 namespace AutoMapperLite
 {
     public sealed class MapperConfig : IMapperConfig
     {
-        private readonly Dictionary<(Type, Type), object> _mappings = new();
+        // ConcurrentDictionary so that a config already published to a DI container
+        // (registered as a singleton) tolerates a CreateMap call racing with concurrent
+        // GetMap/HasMap reads from in-flight mapping calls, instead of relying entirely
+        // on all profiles being configured before the config is ever read.
+        private readonly ConcurrentDictionary<(Type, Type), object> _mappings = new();
 
         public MapBuilder<TSource, TDestination> CreateMap<TSource, TDestination>()
         {

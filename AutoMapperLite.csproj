@@ -1,17 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFrameworks>net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 
 		<!-- NuGet Metadata -->
 		<PackageId>AutoMapperLite</PackageId>
-		<Version>3.0.2</Version>
+		<Version>3.0.3</Version>
 		<PackageReleaseNotes>
-			• Fixed a bug where, if multiple ForPath calls targeted nested properties
-			  under the same top-level destination property, only one of them was
-			  ever applied; all such paths are now applied correctly
+			• Now multi-targets net6.0/net7.0/net8.0/net9.0/net10.0 (previously net8.0 only)
+			• Fixed: mapping to a value-type (struct) destination silently produced an
+			  unpopulated struct, because properties were set on transient boxed copies
+			• Fixed: a List&lt;T&gt; destination property was never auto-mapped even when
+			  a map was registered for the item types, only when one was registered for
+			  the exact List&lt;TSource&gt;/List&lt;TDestination&gt; pair (which nothing registers)
+			• Hardened MapperConfig and the DI registration for concurrent use
+			• Reduced mapping-hot-path allocations and reflection overhead by caching
+			  resolved PropertyInfo/MethodInfo instead of re-resolving them on every call
+			  (~3.3-4x faster, ~6.5-8x less allocation per map, measured via the repo's
+			  BenchmarkDotNet suite)
+			• Clearer exception when a ForMember/ForPath mapping function returns a value
+			  incompatible with the destination property
 		</PackageReleaseNotes>
 		<Authors>Atik Hassan</Authors>
 		<Company>AutoMapperLite</Company>
@@ -22,7 +32,6 @@
 		<Copyright>© 2025 Atik Hassan</Copyright>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>icon.png</PackageIcon>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -33,7 +42,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>

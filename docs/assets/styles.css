@@ -1,0 +1,376 @@
+:root {
+  --bg: #ffffff;
+  --bg-alt: #f6f7f9;
+  --fg: #1c1f24;
+  --fg-muted: #55606b;
+  --border: #e2e5e9;
+  --brand: #3457d5;
+  --brand-dark: #24408f;
+  --code-bg: #1c1f24;
+  --code-fg: #e8eaed;
+  --accent-bg: #eef1fb;
+  --max-width: 980px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --bg-alt: #1b1e24;
+    --fg: #e8eaed;
+    --fg-muted: #a7b0ba;
+    --border: #2c3038;
+    --brand: #7f9bff;
+    --brand-dark: #a9bcff;
+    --code-bg: #0d0f12;
+    --code-fg: #e8eaed;
+    --accent-bg: #1e2333;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--brand);
+}
+
+a:hover {
+  color: var(--brand-dark);
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+header.site-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  text-decoration: none;
+  color: var(--fg);
+}
+
+.brand img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+nav.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+nav.site-nav a {
+  text-decoration: none;
+  color: var(--fg-muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+}
+
+nav.site-nav a:hover,
+nav.site-nav a[aria-current="page"] {
+  color: var(--fg);
+  border-bottom-color: var(--brand);
+}
+
+main {
+  padding: 2.5rem 0 4rem;
+}
+
+.hero {
+  padding: 1rem 0 2.5rem;
+}
+
+.hero h1 {
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  margin: 0 0 0.5rem;
+}
+
+.hero p.lead {
+  color: var(--fg-muted);
+  font-size: 1.1rem;
+  max-width: 42rem;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.badge {
+  display: inline-block;
+  background: var(--accent-bg);
+  color: var(--brand-dark);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--brand-dark);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+section {
+  margin: 2.5rem 0;
+}
+
+section > h2 {
+  font-size: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+section > h3 {
+  font-size: 1.15rem;
+  margin-top: 2rem;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+}
+
+.card h3 {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+
+.card p {
+  color: var(--fg-muted);
+  font-size: 0.93rem;
+  margin-bottom: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.93rem;
+}
+
+caption {
+  caption-side: bottom;
+  color: var(--fg-muted);
+  font-size: 0.8rem;
+  padding-top: 0.4rem;
+  text-align: left;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  color: var(--fg-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.table-scroll table {
+  margin: 0;
+}
+
+.table-scroll th:first-child,
+.table-scroll td:first-child {
+  padding-left: 1rem;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  background: var(--accent-bg);
+  color: var(--brand-dark);
+  padding: 0.12rem 0.35rem;
+  border-radius: 5px;
+  font-size: 0.88em;
+}
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  padding: 1rem 1.1rem;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.87rem;
+  line-height: 1.55;
+}
+
+pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.note {
+  border-left: 4px solid var(--brand);
+  background: var(--accent-bg);
+  padding: 0.85rem 1rem;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.93rem;
+  margin: 1rem 0;
+}
+
+.note strong {
+  color: var(--brand-dark);
+}
+
+.api-entry {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.4rem;
+  margin: 1.25rem 0;
+  background: var(--bg-alt);
+}
+
+.api-entry h3 {
+  margin-top: 0;
+}
+
+.api-entry .signature {
+  display: block;
+  margin: 0.5rem 0 1rem;
+}
+
+.toc {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  background: var(--bg-alt);
+  font-size: 0.93rem;
+}
+
+.toc h2 {
+  margin-top: 0;
+  font-size: 1rem;
+  border: none;
+  padding: 0;
+}
+
+.toc ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+footer.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 0;
+  color: var(--fg-muted);
+  font-size: 0.88rem;
+}
+
+footer.site-footer a {
+  color: var(--fg-muted);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .nav-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  nav.site-nav {
+    gap: 0.9rem;
+  }
+
+  .api-entry {
+    padding: 1rem;
+  }
+}

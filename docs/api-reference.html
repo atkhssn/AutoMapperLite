@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Reference — AutoMapperLite</title>
+<meta name="description" content="Full API reference for AutoMapperLite: IMapper, IMapperConfig, MapBuilder, Profile, and the DI registration extension.">
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav-bar">
+    <a class="brand" href="index.html">
+      <img src="assets/icon.png" alt="">
+      AutoMapperLite
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="api-reference.html" aria-current="page">API Reference</a>
+      <a href="examples.html">Examples</a>
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <section class="hero">
+      <h1>API Reference</h1>
+      <p class="lead">
+        Every public type in the <code>AutoMapperLite</code> and
+        <code>AutoMapperLite.Interfaces</code> namespaces, plus the
+        <code>Microsoft.Extensions.DependencyInjection</code> registration
+        extension.
+      </p>
+    </section>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>On this page</h2>
+      <ul>
+        <li><a href="#imapper">IMapper</a></li>
+        <li><a href="#imapperconfig">IMapperConfig</a></li>
+        <li><a href="#mapbuilder">MapBuilder&lt;TSource, TDestination&gt;</a></li>
+        <li><a href="#profile">Profile</a></li>
+        <li><a href="#servicecollectionextensions">ServiceCollectionExtensions</a></li>
+      </ul>
+    </nav>
+
+    <section id="imapper">
+      <h2>IMapper</h2>
+      <p>Namespace: <code>AutoMapperLite.Interfaces</code>. Registered by <code>AddAutoMapperLite</code> as a singleton; inject it wherever you need to map.</p>
+
+      <div class="api-entry">
+        <h3>Map&lt;TDestination&gt;(object? source)</h3>
+        <code class="signature">TDestination Map&lt;TDestination&gt;(object? source);</code>
+        <p>
+          Maps <code>source</code> to a new instance of <code>TDestination</code> using
+          the map registered for <code>(source.GetType(), TDestination)</code>.
+        </p>
+        <ul>
+          <li>If <code>source</code> is <code>null</code>, returns <code>default(TDestination)</code> (<code>null</code> for reference types).</li>
+          <li>If <code>TDestination</code> is <code>List&lt;T&gt;</code>, <code>source</code> must implement <code>IEnumerable</code>; each element is mapped individually into a new <code>List&lt;T&gt;</code>.</li>
+          <li>Throws <code>InvalidOperationException</code> (wrapped in a <code>TargetInvocationException</code>, since dispatch goes through reflection) if no matching <code>CreateMap</code> was registered.</li>
+        </ul>
+        <pre><code>LocationViewModel dto = mapper.Map&lt;LocationViewModel&gt;(location);
+List&lt;SimpleDto&gt; list  = mapper.Map&lt;List&lt;SimpleDto&gt;&gt;(sourceList);</code></pre>
+      </div>
+    </section>
+
+    <section id="imapperconfig">
+      <h2>IMapperConfig</h2>
+      <p>Namespace: <code>AutoMapperLite.Interfaces</code>. Passed into <code>Profile.Configure</code>; registered by <code>AddAutoMapperLite</code> as a singleton. Thread-safe.</p>
+
+      <div class="api-entry">
+        <h3>CreateMap&lt;TSource, TDestination&gt;()</h3>
+        <code class="signature">MapBuilder&lt;TSource, TDestination&gt; CreateMap&lt;TSource, TDestination&gt;();</code>
+        <p>Registers a mapping between <code>TSource</code> and <code>TDestination</code> and returns a fluent <code>MapBuilder</code> for further configuration.</p>
+        <pre><code>config.CreateMap&lt;Country, CountryViewModel&gt;();</code></pre>
+      </div>
+
+      <div class="api-entry">
+        <h3>GetMap&lt;TSource, TDestination&gt;()</h3>
+        <code class="signature">MapBuilder&lt;TSource, TDestination&gt; GetMap&lt;TSource, TDestination&gt;();</code>
+        <p>
+          Retrieves the builder previously registered via <code>CreateMap</code>.
+          Throws <code>InvalidOperationException</code> if no map exists for that type pair.
+          Used internally by <code>Mapper</code>; rarely called directly.
+        </p>
+      </div>
+
+      <div class="api-entry">
+        <h3>HasMap(Type sourceType, Type destType)</h3>
+        <code class="signature">bool HasMap(Type sourceType, Type destType);</code>
+        <p>
+          Returns whether a map is registered for the given type pair. Used internally
+          by <code>Mapper</code> to decide whether a mismatched-type property (including
+          the item types of two <code>List&lt;T&gt;</code> properties) can be recursively mapped.
+        </p>
+      </div>
+    </section>
+
+    <section id="mapbuilder">
+      <h2>MapBuilder&lt;TSource, TDestination&gt;</h2>
+      <p>Namespace: <code>AutoMapperLite</code>. Returned by <code>CreateMap</code>; configure it fluently.</p>
+
+      <div class="api-entry">
+        <h3>ForMember&lt;TMember&gt;(destination, mapFunc)</h3>
+        <code class="signature">MapBuilder&lt;TSource, TDestination&gt; ForMember&lt;TMember&gt;(
+    Expression&lt;Func&lt;TDestination, TMember&gt;&gt; destination,
+    Func&lt;TSource, object?&gt; mapFunc);</code>
+        <p>Configures mapping for a single, top-level destination property.</p>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Parameter</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>destination</code></td><td>Expression selecting a destination property, e.g. <code>dest =&gt; dest.CountryViewModel</code>. Throws <code>ArgumentNullException</code> if <code>null</code>.</td></tr>
+            <tr><td><code>mapFunc</code></td><td>Function producing the value to assign. Throws <code>ArgumentNullException</code> if <code>null</code>.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="note">
+          <strong>Important:</strong> <code>mapFunc</code> must return a value that is
+          already assignable to the destination property's type. If the source and
+          destination property types differ, call back into a <code>Mapper</code> built
+          from the same config inside the function — see
+          <a href="examples.html#nested-object">Examples → Nested object mapping</a>.
+          A mismatched value throws a descriptive <code>InvalidOperationException</code>
+          naming the property path and the types involved.
+        </div>
+        <pre><code>config.CreateMap&lt;SimpleSource, SimpleDestination&gt;()
+    .ForMember(dest =&gt; dest.Name, src =&gt; src.Name.ToUpperInvariant());</code></pre>
+      </div>
+
+      <div class="api-entry">
+        <h3>ForPath&lt;TMember&gt;(destination, mapFunc)</h3>
+        <code class="signature">MapBuilder&lt;TSource, TDestination&gt; ForPath&lt;TMember&gt;(
+    Expression&lt;Func&lt;TDestination, TMember&gt;&gt; destination,
+    Func&lt;TSource, object?&gt; mapFunc);</code>
+        <p>
+          Configures mapping for a nested destination property several levels deep.
+          Functionally an alias of <code>ForMember</code> — the destination expression
+          can reference any depth of nested properties, and the intermediate objects
+          are instantiated automatically as needed.
+        </p>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Parameter</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>destination</code></td><td>Expression selecting a nested destination path, e.g. <code>dest =&gt; dest.OrganizationViewModel.CountryViewModel.Name</code>.</td></tr>
+            <tr><td><code>mapFunc</code></td><td>Function producing the value to assign at that path, same rules as <code>ForMember</code>.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>Multiple <code>ForPath</code> calls under the same top-level destination property are all applied to the same nested instance.</p>
+        <pre><code>config.CreateMap&lt;Location, LocationViewModel&gt;()
+    .ForPath(dest =&gt; dest.OrganizationViewModel.CountryViewModel.Name,
+             src =&gt; src.Organization.Country.Name)
+    .ForPath(dest =&gt; dest.OrganizationViewModel.OrgName,
+             src =&gt; src.Organization.OrgName);</code></pre>
+      </div>
+    </section>
+
+    <section id="profile">
+      <h2>Profile</h2>
+      <p>Namespace: <code>AutoMapperLite</code>.</p>
+      <div class="api-entry">
+        <h3>abstract class Profile</h3>
+        <code class="signature">public abstract void Configure(IMapperConfig config);</code>
+        <p>
+          Base class for mapping profiles. Subclass it and override <code>Configure</code>
+          to register your <code>CreateMap</code> calls. Must have a public parameterless
+          constructor to be discovered by <code>AddAutoMapperLite</code>.
+        </p>
+        <pre><code>public class MyMappingProfile : Profile
+{
+    public override void Configure(IMapperConfig config)
+    {
+        config.CreateMap&lt;Country, CountryViewModel&gt;();
+    }
+}</code></pre>
+      </div>
+    </section>
+
+    <section id="servicecollectionextensions">
+      <h2>ServiceCollectionExtensions</h2>
+      <p>Namespace: <code>Microsoft.Extensions.DependencyInjection</code> (by convention, so it's discoverable alongside the other <code>Add*</code> extension methods without an extra <code>using</code>).</p>
+      <div class="api-entry">
+        <h3>AddAutoMapperLite(Assembly)</h3>
+        <code class="signature">IServiceCollection AddAutoMapperLite(this IServiceCollection services, Assembly assembly);</code>
+        <p>
+          Scans <code>assembly</code> for concrete <code>Profile</code> subclasses with a
+          public parameterless constructor, instantiates each and calls
+          <code>Configure</code> against a shared <code>MapperConfig</code>, then
+          registers:
+        </p>
+        <ul>
+          <li><code>IMapperConfig</code> as a singleton (the populated config)</li>
+          <li><code>IMapper</code> as a singleton (backed by <code>Mapper</code>)</li>
+        </ul>
+        <p>Throws <code>ArgumentNullException</code> if <code>assembly</code> is <code>null</code>.</p>
+        <pre><code>using System.Reflection;
+
+builder.Services.AddAutoMapperLite(Assembly.GetExecutingAssembly());</code></pre>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>
+      AutoMapperLite is released under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+      Questions? <a href="mailto:atik.hassan@outlook.com">atik.hassan@outlook.com</a> ·
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </p>
+  </div>
+</footer>
+</body>
+</html>

@@ -8,6 +8,8 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static IServiceCollection AddAutoMapperLite(this IServiceCollection services, Assembly assembly)
         {
+            ArgumentNullException.ThrowIfNull(assembly);
+
             var config = new MapperConfig();
 
             var profileTypes = assembly.GetTypes()
@@ -20,7 +22,10 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             services.AddSingleton<IMapperConfig>(config);
-            services.AddScoped<IMapper, Mapper>();
+
+            // Mapper holds no per-request state beyond the (already-singleton) config,
+            // so it is safe and allocation-free to register it as a singleton too.
+            services.AddSingleton<IMapper, Mapper>();
 
             return services;
         }

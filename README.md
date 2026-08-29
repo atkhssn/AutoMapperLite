@@ -3,16 +3,21 @@
 A lightweight, customizable object-to-object mapping library for .NET projects.  
 Designed for internal use in your projects to simplify DTO and entity mapping with easy-to-use profiles, support for nested properties, and flexible configuration.
 
+Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
+
+📖 Full documentation (Quick Start, API reference, runnable examples): [`docs/index.html`](docs/index.html) — open it locally in a browser, or enable GitHub Pages on this repo (Settings → Pages → deploy from `/docs`) to serve it live.
+
 ---
 
 ## Features
 
 - Simple and fast object mapping between source and destination types.
-- Supports nested object mapping.
+- Supports nested object mapping, including nested `List<T>` properties whose item types have a registered map.
 - Fluent profile-based configuration similar to AutoMapper.
 - Supports `ForMember` and `ForPath` for custom member and nested member mappings.
 - Supports collection mapping (e.g., List<T>).
-- Integration via Dependency Injection (DI).
+- Integration via Dependency Injection (DI) — `IMapperConfig` and `IMapper` are both registered as singletons, since neither holds per-request state.
+- Thread-safe: mapping configuration and the mapper itself can be used concurrently.
 - Designed as a small NuGet package for internal project use.
 
 ---
@@ -22,7 +27,7 @@ Designed for internal use in your projects to simplify DTO and entity mapping wi
 Install the NuGet package in your project:
 
 ```bash
-dotnet add package AutoMapperLite --version 3.0.1
+dotnet add package AutoMapperLite --version 3.0.3
 ```
 
 ### 1. Register AutoMapperLite in your DI container
@@ -56,13 +61,19 @@ public class MyMappingProfile : Profile
         // Basic map
         config.CreateMap<Country, CountryViewModel>();
 
+        // ForMember/ForPath functions must return the already-mapped value, not the raw
+        // source sub-object — the library does not implicitly convert types for you. When
+        // the source and destination property types differ (as here: Country vs.
+        // CountryViewModel), map through the mapper itself inside the function.
+        var mapper = new Mapper(config);
+
         // Map with ForMember for direct property mapping
         config.CreateMap<Organization, OrganizationViewModel>()
-            .ForMember(dest => dest.CountryViewModel, src => src.Country);
+            .ForMember(dest => dest.CountryViewModel, src => mapper.Map<CountryViewModel>(src.Country));
 
         // Map with ForPath for nested properties
         config.CreateMap<Location, LocationViewModel>()
-            .ForPath(dest => dest.OrganizationViewModel.CountryViewModel, src => src.Organization.Country);
+            .ForPath(dest => dest.OrganizationViewModel.CountryViewModel, src => mapper.Map<CountryViewModel>(src.Organization.Country));
     }
 }
 ```

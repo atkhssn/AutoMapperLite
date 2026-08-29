@@ -45,4 +45,38 @@ namespace AutoMapperLite.Tests
         public string Address { get; set; } = string.Empty;
         public OrganizationViewModel OrganizationViewModel { get; set; } = new();
     }
+
+    public class Employee
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class EmployeeViewModel
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class Department
+    {
+        public string DeptName { get; set; } = string.Empty;
+        public List<Employee> Employees { get; set; } = new();
+    }
+
+    public class DepartmentViewModel
+    {
+        public string DeptName { get; set; } = string.Empty;
+        public List<EmployeeViewModel> Employees { get; set; } = new();
+    }
+
+    public struct PointStruct
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
+
+    public struct PointStructDto
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
 }

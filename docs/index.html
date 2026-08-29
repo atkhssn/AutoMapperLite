@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoMapperLite — Documentation</title>
+<meta name="description" content="A lightweight, reflection-based object-to-object mapper for .NET. Documentation, API reference, and examples.">
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav-bar">
+    <a class="brand" href="index.html">
+      <img src="assets/icon.png" alt="">
+      AutoMapperLite
+    </a>
+    <nav class="site-nav">
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="api-reference.html">API Reference</a>
+      <a href="examples.html">Examples</a>
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <section class="hero">
+      <h1>AutoMapperLite</h1>
+      <p class="lead">
+        A lightweight, customizable object-to-object mapping library for .NET.
+        Simplify DTO and entity mapping with fluent profiles, nested-property
+        support, and flexible configuration — without the overhead of a full
+        AutoMapper installation.
+      </p>
+      <div class="badges">
+        <span class="badge">v3.0.3</span>
+        <span class="badge">MIT licensed</span>
+        <span class="badge">net6.0 – net10.0</span>
+        <span class="badge">Thread-safe</span>
+      </div>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#quick-start">Quick Start</a>
+        <a class="btn btn-secondary" href="api-reference.html">API Reference</a>
+        <a class="btn btn-secondary" href="examples.html">Examples</a>
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>Features</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>Simple &amp; fast</h3>
+          <p>Auto-maps same-named, same-type properties with no configuration.</p>
+        </div>
+        <div class="card">
+          <h3>Nested mapping</h3>
+          <p>Map nested objects and nested <code>List&lt;T&gt;</code> properties whose item types have a registered map.</p>
+        </div>
+        <div class="card">
+          <h3>Fluent profiles</h3>
+          <p><code>ForMember</code> and <code>ForPath</code> for custom and deeply-nested member mapping, similar to AutoMapper.</p>
+        </div>
+        <div class="card">
+          <h3>Collections</h3>
+          <p>Map <code>List&lt;T&gt;</code> source collections directly, item by item.</p>
+        </div>
+        <div class="card">
+          <h3>DI-friendly</h3>
+          <p><code>AddAutoMapperLite(Assembly)</code> registers <code>IMapperConfig</code> and <code>IMapper</code> as singletons.</p>
+        </div>
+        <div class="card">
+          <h3>Thread-safe</h3>
+          <p>Configuration and mapping can both be used concurrently.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="installation">
+      <h2>Installation</h2>
+      <p>Install the NuGet package in your project:</p>
+      <pre><code>dotnet add package AutoMapperLite --version 3.0.3</code></pre>
+      <p>Targets <code>net6.0</code>, <code>net7.0</code>, <code>net8.0</code>, <code>net9.0</code>, and <code>net10.0</code>.</p>
+    </section>
+
+    <section id="quick-start">
+      <h2>Quick Start</h2>
+
+      <h3>1. Register AutoMapperLite in your DI container</h3>
+      <pre><code>using System.Reflection;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Register all profiles from the executing assembly
+builder.Services.AddAutoMapperLite(Assembly.GetExecutingAssembly());
+
+var app = builder.Build();</code></pre>
+
+      <h3>2. Create a mapping profile</h3>
+      <p>
+        Define your mappings by creating a class that inherits from <code>Profile</code>
+        and overrides <code>Configure</code>:
+      </p>
+      <pre><code>using AutoMapperLite;
+using AutoMapperLite.Interfaces;
+
+public class MyMappingProfile : Profile
+{
+    public override void Configure(IMapperConfig config)
+    {
+        // Basic map: same-named, same-type properties auto-map for free.
+        config.CreateMap&lt;Country, CountryViewModel&gt;();
+
+        // ForMember/ForPath functions must return the ALREADY-MAPPED value,
+        // not the raw source sub-object — the library never implicitly
+        // converts types inside a custom mapping function. When source and
+        // destination property types differ, map through the mapper itself.
+        var mapper = new Mapper(config);
+
+        config.CreateMap&lt;Organization, OrganizationViewModel&gt;()
+            .ForMember(dest =&gt; dest.CountryViewModel,
+                       src =&gt; mapper.Map&lt;CountryViewModel&gt;(src.Country));
+
+        config.CreateMap&lt;Location, LocationViewModel&gt;()
+            .ForPath(dest =&gt; dest.OrganizationViewModel.CountryViewModel,
+                      src =&gt; mapper.Map&lt;CountryViewModel&gt;(src.Organization.Country));
+    }
+}</code></pre>
+      <div class="note">
+        <strong>Verified:</strong> every code sample on this site is checked
+        against the actual library before publishing — see
+        <a href="examples.html#nested-object">Examples → Nested object mapping</a>
+        for the same pattern with its assertions.
+      </div>
+
+      <h3>3. Inject and use the mapper</h3>
+      <pre><code>public class MyService
+{
+    private readonly IMapper _mapper;
+
+    public MyService(IMapper mapper)
+    {
+        _mapper = mapper;
+    }
+
+    public LocationViewModel GetLocationViewModel(Location location)
+    {
+        return _mapper.Map&lt;LocationViewModel&gt;(location);
+    }
+}</code></pre>
+    </section>
+
+    <section id="next-steps">
+      <h2>Where next</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3><a href="api-reference.html">API Reference</a></h3>
+          <p>Full signatures for <code>IMapper</code>, <code>IMapperConfig</code>, <code>MapBuilder&lt;TSource,TDestination&gt;</code>, <code>Profile</code>, and the DI extension method.</p>
+        </div>
+        <div class="card">
+          <h3><a href="examples.html">Examples</a></h3>
+          <p>Runnable examples: basic mapping, custom members, deep nested paths, collections, and nested collection properties.</p>
+        </div>
+        <div class="card">
+          <h3><a href="https://github.com/atkhssn/AutoMapperLite/blob/main/CONTRIBUTING.md">Contributing</a></h3>
+          <p>How to build, test, and submit changes.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>
+      AutoMapperLite is released under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+      Questions? <a href="mailto:atik.hassan@outlook.com">atik.hassan@outlook.com</a> ·
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </p>
+  </div>
+</footer>
+</body>
+</html>

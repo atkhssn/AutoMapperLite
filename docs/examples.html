@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Examples — AutoMapperLite</title>
+<meta name="description" content="Runnable AutoMapperLite examples: basic mapping, custom members, nested objects, deep paths, collections, and nested collection properties.">
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav-bar">
+    <a class="brand" href="index.html">
+      <img src="assets/icon.png" alt="">
+      AutoMapperLite
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="api-reference.html">API Reference</a>
+      <a href="examples.html" aria-current="page">Examples</a>
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <section class="hero">
+      <h1>Examples</h1>
+      <p class="lead">
+        Every example below is executed and asserted against the real library
+        before publishing — none of these are hypothetical.
+      </p>
+    </section>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>On this page</h2>
+      <ul>
+        <li><a href="#basic">1. Basic mapping</a></li>
+        <li><a href="#formember">2. Custom member mapping with ForMember</a></li>
+        <li><a href="#nested-object">3. Nested object mapping</a></li>
+        <li><a href="#forpath">4. Deep nested paths with ForPath</a></li>
+        <li><a href="#collections">5. Collection mapping</a></li>
+        <li><a href="#nested-collections">6. Nested collection properties</a></li>
+      </ul>
+    </nav>
+
+    <section id="basic">
+      <h2>1. Basic mapping</h2>
+      <p>Same-named, same-type properties are mapped automatically — no configuration beyond <code>CreateMap</code>.</p>
+      <pre><code>public class SimpleSource
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+public class SimpleDestination
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+var config = new MapperConfig();
+config.CreateMap&lt;SimpleSource, SimpleDestination&gt;();
+IMapper mapper = new Mapper(config);
+
+var result = mapper.Map&lt;SimpleDestination&gt;(new SimpleSource { Id = 1, Name = "Ada" });
+
+// result.Id == 1
+// result.Name == "Ada"</code></pre>
+    </section>
+
+    <section id="formember">
+      <h2>2. Custom member mapping with ForMember</h2>
+      <p>Use <code>ForMember</code> to compute or transform a single top-level property.</p>
+      <pre><code>var config = new MapperConfig();
+config.CreateMap&lt;SimpleSource, SimpleDestination&gt;()
+    .ForMember(dest =&gt; dest.Name, src =&gt; src.Name.ToUpperInvariant());
+IMapper mapper = new Mapper(config);
+
+var result = mapper.Map&lt;SimpleDestination&gt;(new SimpleSource { Id = 1, Name = "Ada" });
+
+// result.Name == "ADA"</code></pre>
+    </section>
+
+    <section id="nested-object">
+      <h2>3. Nested object mapping</h2>
+      <p>
+        When a destination property's type differs from the source property it
+        corresponds to, <code>ForMember</code>'s function must produce the
+        already-mapped value itself — it does not happen implicitly. The usual
+        pattern is to close over a <code>Mapper</code> built from the same
+        <code>config</code> and call back into it:
+      </p>
+      <pre><code>public class Country { public string Name { get; set; } = ""; }
+public class CountryViewModel { public string Name { get; set; } = ""; }
+public class Organization
+{
+    public string OrgName { get; set; } = "";
+    public Country Country { get; set; } = new();
+}
+public class OrganizationViewModel
+{
+    public string OrgName { get; set; } = "";
+    public CountryViewModel CountryViewModel { get; set; } = new();
+}
+
+var config = new MapperConfig();
+config.CreateMap&lt;Country, CountryViewModel&gt;();
+
+var mapper = new Mapper(config);
+
+config.CreateMap&lt;Organization, OrganizationViewModel&gt;()
+    .ForMember(dest =&gt; dest.CountryViewModel,
+               src =&gt; mapper.Map&lt;CountryViewModel&gt;(src.Country));
+
+var result = mapper.Map&lt;OrganizationViewModel&gt;(new Organization
+{
+    OrgName = "Acme",
+    Country = new Country { Name = "Wonderland" }
+});
+
+// result.OrgName == "Acme"
+// result.CountryViewModel.Name == "Wonderland"</code></pre>
+      <div class="note">
+        <strong>Why this matters:</strong> passing the raw <code>src.Country</code>
+        straight through (without the <code>mapper.Map&lt;CountryViewModel&gt;(...)</code>
+        call) throws <code>InvalidOperationException</code> at runtime, since a
+        <code>Country</code> instance cannot be assigned to a
+        <code>CountryViewModel</code> property. This exact mistake was previously
+        in this project's own README — it's called out here so it doesn't happen
+        to you.
+      </div>
+    </section>
+
+    <section id="forpath">
+      <h2>4. Deep nested paths with ForPath</h2>
+      <p>
+        <code>ForPath</code> targets a property several levels deep. Multiple
+        <code>ForPath</code> calls under the same top-level destination property
+        are all applied to the same nested instance.
+      </p>
+      <pre><code>public class Location
+{
+    public string Address { get; set; } = "";
+    public Organization Organization { get; set; } = new();
+}
+public class LocationViewModel
+{
+    public string Address { get; set; } = "";
+    public OrganizationViewModel OrganizationViewModel { get; set; } = new();
+}
+
+var config = new MapperConfig();
+config.CreateMap&lt;Location, LocationViewModel&gt;()
+    .ForPath(dest =&gt; dest.OrganizationViewModel.CountryViewModel.Name,
+             src =&gt; src.Organization.Country.Name)
+    .ForPath(dest =&gt; dest.OrganizationViewModel.OrgName,
+             src =&gt; src.Organization.OrgName);
+
+var mapper = new Mapper(config);
+
+var result = mapper.Map&lt;LocationViewModel&gt;(new Location
+{
+    Address = "1 Main St",
+    Organization = new Organization
+    {
+        OrgName = "Acme",
+        Country = new Country { Name = "Wonderland" }
+    }
+});
+
+// result.Address == "1 Main St"
+// result.OrganizationViewModel.OrgName == "Acme"
+// result.OrganizationViewModel.CountryViewModel.Name == "Wonderland"</code></pre>
+    </section>
+
+    <section id="collections">
+      <h2>5. Collection mapping</h2>
+      <p>Map a <code>List&lt;TSource&gt;</code> directly to a <code>List&lt;TDestination&gt;</code> — each element is mapped individually.</p>
+      <pre><code>var config = new MapperConfig();
+config.CreateMap&lt;SimpleSource, SimpleDestination&gt;();
+IMapper mapper = new Mapper(config);
+
+var sources = new List&lt;SimpleSource&gt;
+{
+    new() { Id = 1, Name = "Ada" },
+    new() { Id = 2, Name = "Alan" },
+};
+
+var result = mapper.Map&lt;List&lt;SimpleDestination&gt;&gt;(sources);
+
+// result.Count == 2
+// result[0].Name == "Ada"
+// result[1].Name == "Alan"</code></pre>
+    </section>
+
+    <section id="nested-collections">
+      <h2>6. Nested collection properties</h2>
+      <p>
+        A <code>List&lt;T&gt;</code> destination <em>property</em> (not just the
+        top-level <code>Map&lt;List&lt;T&gt;&gt;</code> call) is also auto-mapped, as
+        long as a map is registered for the item types.
+      </p>
+      <pre><code>public class Employee { public string Name { get; set; } = ""; }
+public class EmployeeViewModel { public string Name { get; set; } = ""; }
+
+public class Department
+{
+    public string DeptName { get; set; } = "";
+    public List&lt;Employee&gt; Employees { get; set; } = new();
+}
+public class DepartmentViewModel
+{
+    public string DeptName { get; set; } = "";
+    public List&lt;EmployeeViewModel&gt; Employees { get; set; } = new();
+}
+
+var config = new MapperConfig();
+config.CreateMap&lt;Employee, EmployeeViewModel&gt;();
+config.CreateMap&lt;Department, DepartmentViewModel&gt;();
+IMapper mapper = new Mapper(config);
+
+var result = mapper.Map&lt;DepartmentViewModel&gt;(new Department
+{
+    DeptName = "Engineering",
+    Employees = new List&lt;Employee&gt;
+    {
+        new() { Name = "Ada" },
+        new() { Name = "Alan" },
+    }
+});
+
+// result.DeptName == "Engineering"
+// result.Employees.Count == 2
+// result.Employees[0].Name == "Ada"</code></pre>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>
+      AutoMapperLite is released under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+      Questions? <a href="mailto:atik.hassan@outlook.com">atik.hassan@outlook.com</a> ·
+      <a href="https://github.com/atkhssn/AutoMapperLite">GitHub</a>
+    </p>
+  </div>
+</footer>
+</body>
+</html>
