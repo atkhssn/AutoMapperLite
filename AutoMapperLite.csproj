@@ -15,105 +15,43 @@
 
 		<!-- NuGet Metadata -->
 		<PackageId>AutoMapperLite</PackageId>
-		<Version>4.3.0</Version>
+		<Version>4.4.0</Version>
 		<PackageReleaseNotes>
-			AutoMapperLite 4.3.0 — current official release; all prior versions are deprecated.
+			AutoMapperLite 4.4.0 — current official release; all prior versions are deprecated.
 
-			• Performance/allocation fix: the compiled mapping delegate lookup
-			  (MapBuilder.GetCompiledMap, used by every dispatch path) previously wrote
-			  `LazyInitializer.EnsureInitialized(ref _compiledMap, () =&gt; MappingPlanCompiler.Compile(this, config))`
-			  directly in the hot method body. That lambda captures `this` and `config`, so C#
-			  allocates a new closure object and a new delegate wrapping it on *every single call*
-			  to that method, even once the plan is already compiled and the factory is never
-			  invoked — the JIT cannot see that the argument goes unused most of the time. This was
-			  the single largest source of AutoMapperLite's excess allocation versus manual mapping
-			  and Mapster in every scenario with a same-name nested property or a collection: a
-			  100-item collection dropped from 13.44 KB to 4.06 KB (now within 3% of Manual's/
-			  Mapster's 3.96 KB, was 3.4x worse); a 5,000-item collection dropped from 664.25 KB to
-			  195.48 KB (now within 0.06% of Manual's/Mapster's 195.37 KB, was 3.4x worse); Simple/
-			  Medium/Nested/DeepNested object mapping now allocate exactly what Manual mapping does
-			  (32 B/80 B/80 B/248 B), down from 128 B/176 B/272 B/632 B. Fixed by checking the
-			  field directly (Volatile.Read) first and only falling through to the
-			  lambda-allocating slow path once, ever, per builder.
-			• Performance: IMapper.Map&lt;TSource,TDestination&gt;(TSource) (added in 4.2.0) is now
-			  actually faster than the untyped Map&lt;TDestination&gt;(object) overload it was always
-			  meant to beat — measurement during this release showed it had regressed *slower*
-			  in practice, because each call still round-tripped through
-			  IMapperConfig.GetMap&lt;,&gt;() (a plain dictionary lookup, uncached at the Mapper level)
-			  plus the above per-call closure allocation, while the untyped overload's cached
-			  closure captured an already-resolved delegate directly (no volatile read, no
-			  re-lookup). A dedicated per-Mapper-instance cache (mirroring the untyped path's own)
-			  now gives the typed overload the same shape: one dictionary lookup keyed by
-			  compile-time Type, then a direct delegate invocation, with zero return-value boxing.
-			• Verified collection mapping now scales linearly with no per-item overhead creeping
-			  back in as size grows: at 100,000 items AutoMapperLite is within 11% of Manual
-			  mapping's time and allocates within 0.007% of it (was previously ~3.4x the
-			  allocation at any size). Full scenario-by-scenario numbers and methodology, including
-			  this release's benchmark methodology caveats, are in docs/performance.html.
-			• No public API or behavior changes since 4.2.0 — this release is dispatch-layer
-			  allocation/perf work only, verified against the full existing test suite (120 tests)
-			  plus a new regression test for self-referential type mapping
-			  (Map_HandlesSelfReferentialType_WithAcyclicData) added to guard against a fix that
-			  was considered and deliberately NOT made (see CLAUDE.md) because it would have
-			  StackOverflowed on self-referential types like `Employee.Manager: Employee` even with
-			  fully acyclic data.
+			Mapping engine and performance redesign. Each source/destination type pair now
+			compiles into a cached delegate via System.Linq.Expressions on first use, instead of
+			interpreting mappings through reflection. Dispatch, collection element resolution, and
+			nested same-name property mapping are all resolved once and cached rather than
+			re-resolved per call. See docs/performance.html for full measured results.
 
-			Previous (4.2.0): dispatch-layer performance redesign; all prior versions deprecated.
-
-			• Performance: redesigned the runtime dispatch layer that sits on top of the compiled
-			  expression-tree plans introduced in 4.1.0. The 4.1.0 redesign compiled each mapping
-			  itself but still resolved *which* compiled delegate to call via a global cache that
-			  re-looked-up the destination config on every single call (two dictionary lookups per
-			  Map), used runtime GetType()+dictionary-lookup dispatch for every collection item, and
-			  routed nested same-name auto-mapped properties through that same per-call dispatch
-			  despite the nested type pair being fully known at plan-compile time. 4.2.0 fixes all
-			  three: entry-point resolution is now cached per Mapper instance and resolved once, not
-			  re-looked-up per call; List&lt;T&gt; mapping resolves the item mapper once per call (not
-			  once per item) via a strongly-typed loop with zero per-item boxing; and nested
-			  auto-mapped properties (single object and List&lt;T&gt;) have their builder resolved once
-			  at plan-compile time and baked directly into the compiled expression. Measured on this
-			  repo's own BenchmarkDotNet suite: simple-object mapping 67.6 ns → 42.2 ns (~38%
-			  faster, now faster than AutoMapper's 58.2 ns), a 100-item collection 6,986.7 ns →
-			  2,744.1 ns (~61% faster), a 5,000-item collection 390.81 µs → 156.47 µs (~60% faster).
-			  Cold start remains the fastest of the three compared libraries. Full scenario-by-
-			  scenario numbers and methodology are in docs/performance.html.
 			• Added: IMapper.Map&lt;TSource, TDestination&gt;(TSource source) — a strongly-typed
-			  overload for call sites where the source type is known at compile time. Skips
-			  source.GetType(), the entry-point cache, and return-value boxing entirely. This is an
-			  addition to the IMapper interface: additive for callers, technically breaking for
-			  anyone who implements IMapper themselves rather than using the built-in Mapper class.
-			• Behavior change (disclosed): List&lt;T&gt; destination mapping now resolves the item map
-			  from the source collection's declared item type (e.g. List&lt;TSourceItem&gt;'s generic
-			  argument), not from each element's individual runtime type. A List&lt;Base&gt; containing
-			  Derived instances now maps every element through Base's registered map, using Base's
-			  properties only — previously this dispatched per element by runtime type, which would
-			  throw for a Derived element unless a map was separately registered for exactly
-			  (Derived, TDestItem). Source collections whose item type can't be determined from
-			  their own Type (non-generic IEnumerable) are unaffected and still dispatch per element
-			  by runtime type.
-			• No public API breaking changes for callers since 3.0.3 (only for custom IMapper
-			  implementers, per the addition above).
-
-			Previous (4.1.0): compiled expression-tree mapping plans replaced interpreted
-			reflection (PropertyInfo.GetValue/SetValue, MethodInfo.Invoke, Activator.CreateInstance)
-			for the per-property copying work itself; exceptions stopped arriving wrapped in
-			TargetInvocationException as a result.
+			  overload for call sites where the source type is known at compile time. This is the
+			  fastest way to call AutoMapperLite.
+			• Added: collection destinations are no longer limited to List&lt;T&gt;.
+			  Map&lt;TDestination&gt;(object) now also accepts T[], IList&lt;T&gt;, ICollection&lt;T&gt;,
+			  IReadOnlyList&lt;T&gt;, IReadOnlyCollection&lt;T&gt;, and IEnumerable&lt;T&gt;. The same
+			  flexibility applies to same-name nested collection properties.
+			• Behavior change (disclosed): exceptions raised during mapping now propagate directly
+			  as InvalidOperationException instead of being wrapped in TargetInvocationException.
+			• Behavior change (disclosed): List&lt;T&gt; mapping resolves the item map from the source
+			  collection's declared item type rather than each element's runtime type.
+			• Allocations for simple, medium, nested, and deeply-nested object mapping now match
+			  hand-written manual mapping exactly. Collection mapping allocation is within a few
+			  percent of manual mapping/Mapster at any size, from 10 items to 100,000.
+			• No public API breaking changes since 4.0.2 (only for anyone implementing IMapper
+			  directly rather than using the built-in Mapper class, due to the new interface
+			  member above).
 
 			Previous (4.0.2):
-			• Fixed: updated test tooling (xunit.v3, Microsoft.NET.Test.Sdk 18.9.0) hard-required
-			  net8.0+ and a Microsoft Testing Platform v2 change dropped dotnet test's legacy
-			  VSTest bridge on the .NET 10 SDK — the test project now targets net8.0-net10.0 (the
-			  library itself is unaffected and still targets net6.0-net10.0) and a repo-root
-			  global.json opts dotnet test into native MTP mode
-			• Fixed: Activator.CreateInstance failures (e.g. mapping to a positional record with
-			  no parameterless constructor) now throw a clear InvalidOperationException naming
-			  the type, instead of a bare MissingMethodException
-			• Added real, measured BenchmarkDotNet comparisons against manual mapping, AutoMapper
-			  16.2.0, and Mapster 10.0.12 — published in docs/performance.html
-			• Verified and documented several previously-untested behaviors: null source
-			  properties are skipped (not assigned), auto-map requires an exact type match
-			  (different enum types / numeric widening are not converted), and records with a
-			  parameterless constructor + init-only properties map correctly
+			• Fixed: updated test tooling required net8.0+; the test project now targets
+			  net8.0-net10.0 (the library itself still targets net6.0-net10.0).
+			• Fixed: Activator.CreateInstance failures now throw a clear InvalidOperationException
+			  naming the type, instead of a bare MissingMethodException.
+			• Added real, measured BenchmarkDotNet comparisons against manual mapping, AutoMapper,
+			  and Mapster.
+			• Verified and documented: null source properties are skipped (not assigned), auto-map
+			  requires an exact type match, and records with init-only properties map correctly.
 		</PackageReleaseNotes>
 		<Authors>Atik Hassan</Authors>
 		<Company>AutoMapperLite</Company>

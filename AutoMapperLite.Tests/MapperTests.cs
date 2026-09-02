@@ -108,6 +108,77 @@ namespace AutoMapperLite.Tests
         }
 
         [Fact]
+        public void Map_MapsToArrayDestination()
+        {
+            var config = new MapperConfig();
+            config.CreateMap<SimpleSource, SimpleDestination>();
+            var mapper = new Mapper(config);
+
+            var sources = new List<SimpleSource> { new() { Id = 1, Name = "a" }, new() { Id = 2, Name = "b" } };
+
+            var result = mapper.Map<SimpleDestination[]>(sources);
+
+            Assert.Equal(2, result.Length);
+            Assert.Equal("a", result[0].Name);
+            Assert.Equal("b", result[1].Name);
+        }
+
+        [Fact]
+        public void Map_MapsToEmptyArrayDestination_WithoutRequiringRegisteredMap()
+        {
+            var config = new MapperConfig();
+            var mapper = new Mapper(config);
+
+            var result = mapper.Map<SimpleDestination[]>(new List<SimpleSource>());
+
+            Assert.Empty(result);
+        }
+
+        [Theory]
+        [InlineData(typeof(IList<SimpleDestination>))]
+        [InlineData(typeof(ICollection<SimpleDestination>))]
+        [InlineData(typeof(IReadOnlyList<SimpleDestination>))]
+        [InlineData(typeof(IReadOnlyCollection<SimpleDestination>))]
+        [InlineData(typeof(IEnumerable<SimpleDestination>))]
+        public void Map_MapsToListCompatibleInterfaceDestination(Type destinationType)
+        {
+            // IMapper.Map<TDestination> is generic on TDestination, which xunit's [Theory] can't
+            // parameterize directly - invoke it via MakeGenericMethod instead to still verify
+            // every one of these interface shapes end-to-end through the real public API.
+            var config = new MapperConfig();
+            config.CreateMap<SimpleSource, SimpleDestination>();
+            var mapper = new Mapper(config);
+            var sources = new List<SimpleSource> { new() { Id = 1, Name = "a" }, new() { Id = 2, Name = "b" } };
+
+            var mapMethod = typeof(Mapper).GetMethod(nameof(Mapper.Map), new[] { typeof(object) })!
+                .MakeGenericMethod(destinationType);
+            var result = (System.Collections.IEnumerable)mapMethod.Invoke(mapper, new object?[] { sources })!;
+
+            var items = result.Cast<SimpleDestination>().ToList();
+            Assert.Equal(2, items.Count);
+            Assert.Equal("b", items[1].Name);
+        }
+
+        [Fact]
+        public void Map_AutoMapsNestedListProperty_WhenDestinationPropertyIsListCompatibleInterface()
+        {
+            var config = new MapperConfig();
+            config.CreateMap<Employee, EmployeeViewModel>();
+            config.CreateMap<Department, DepartmentIListViewModel>();
+            var mapper = new Mapper(config);
+
+            var result = mapper.Map<DepartmentIListViewModel>(new Department
+            {
+                DeptName = "Engineering",
+                Employees = new List<Employee> { new() { Name = "Ada" }, new() { Name = "Alan" } }
+            });
+
+            Assert.Equal(2, result.Employees.Count);
+            Assert.Equal("Ada", result.Employees[0].Name);
+            Assert.Equal("Alan", result.Employees[1].Name);
+        }
+
+        [Fact]
         public void Map_MapsListOfObjects_ViaCustomIEnumerableSource()
         {
             // A LINQ iterator implements IEnumerable<T> but is neither List<T> nor an array -
@@ -473,6 +544,46 @@ namespace AutoMapperLite.Tests
                         new() { Id = i + 1, Name = "b" },
                     });
                     if (list.Count != 2) throw new Exception("List map mismatch");
+                }
+                catch (Exception ex)
+                {
+                    exceptions.Add(ex);
+                }
+            });
+
+            Assert.Empty(exceptions);
+        }
+
+        [Fact]
+        public void Map_ArrayAndInterfaceDestinations_AreThreadSafe_WhenManyThreadsRaceTheFirstCollectionMap()
+        {
+            // Array/interface collection destinations (4.4.0: Mapper.IsListCompatibleDestination,
+            // the IsArray branch in Map<TDestination>(object)) all route through the same
+            // GetOrBuildListMapper/_listMappers cache that Map_ListMapperCacheIsThreadSafe above
+            // already races - this test exists to also race the *new* code paths built on top of
+            // it (the array-copy step, and casting the shared List<T> result to each interface
+            // type) on a brand-new mapper's very first call, since those paths didn't exist when
+            // that test was written.
+            var config = new MapperConfig();
+            config.CreateMap<SimpleSource, SimpleDestination>();
+            var mapper = new Mapper(config);
+
+            var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+            Parallel.For(0, 500, i =>
+            {
+                try
+                {
+                    var sources = new List<SimpleSource> { new() { Id = i, Name = "a" }, new() { Id = i + 1, Name = "b" } };
+
+                    var array = mapper.Map<SimpleDestination[]>(sources);
+                    if (array.Length != 2 || array[1].Name != "b") throw new Exception("Array map mismatch");
+
+                    var asIList = mapper.Map<IList<SimpleDestination>>(sources);
+                    if (asIList.Count != 2 || asIList[1].Name != "b") throw new Exception("IList map mismatch");
+
+                    var asEnumerable = mapper.Map<IEnumerable<SimpleDestination>>(sources).ToList();
+                    if (asEnumerable.Count != 2 || asEnumerable[1].Name != "b") throw new Exception("IEnumerable map mismatch");
                 }
                 catch (Exception ex)
                 {

@@ -114,8 +114,29 @@ namespace AutoMapperLite
             if (source is null) return default!;
             var destType = typeof(TDestination);
 
-            if (IsGenericList(destType))
-                return (TDestination)MapList(source, destType.GetGenericArguments()[0]);
+            // Array destinations reuse the exact same List<T>-building machinery (cache, compiled
+            // per-item delegate, strongly-typed loop) and just copy the finished list into a
+            // fixed-size array at the end. A dedicated array dispatch/cache path (mirroring
+            // GetOrBuildListMapper/_listMappers) would double the collection-dispatch surface for
+            // what's a less common destination shape than List<T> - one bounded O(n) copy is a
+            // simpler, still-fast way to get there. Count is known up front from the finished
+            // list, so the array is allocated at its exact final size, never resized.
+            if (destType.IsArray)
+            {
+                var itemType = destType.GetElementType()!;
+                var list = (ICollection)MapList(source, itemType);
+                var array = Array.CreateInstance(itemType, list.Count);
+                list.CopyTo(array, 0);
+                return (TDestination)(object)array;
+            }
+
+            // List<T> itself, or any interface it implements that a destination could plausibly
+            // be declared as (IList<T>, ICollection<T>, IReadOnlyList<T>, IReadOnlyCollection<T>,
+            // IEnumerable<T>) - a List<T> instance already satisfies every one of these, so no
+            // extra construction or copying is needed: the same List<T> this method already
+            // builds is simply returned through a wider compile-time type.
+            if (IsListCompatibleDestination(destType, out var destItemType))
+                return (TDestination)MapList(source, destItemType);
 
             var entryPoint = GetOrBuildEntryPoint(source.GetType(), destType);
             return (TDestination)entryPoint(source)!;
@@ -313,15 +334,46 @@ namespace AutoMapperLite
             return resultList;
         }
 
+        // Destination shapes a List<T> instance can be returned through directly, with no
+        // construction or copying beyond what MapList already does: List<T> itself, plus every
+        // interface it implements that a destination could plausibly be declared as. Deliberately
+        // excludes arrays - an array needs the separate copy step in Map<TDestination>(object)
+        // above, since List<T> isn't reference-assignable to T[].
+        private static bool IsListCompatibleDestination(Type type, out Type itemType)
+        {
+            if (type.IsGenericType)
+            {
+                var def = type.GetGenericTypeDefinition();
+                if (def == typeof(List<>) || def == typeof(IList<>) || def == typeof(ICollection<>) ||
+                    def == typeof(IReadOnlyList<>) || def == typeof(IReadOnlyCollection<>) || def == typeof(IEnumerable<>))
+                {
+                    itemType = type.GetGenericArguments()[0];
+                    return true;
+                }
+            }
+
+            itemType = typeof(object);
+            return false;
+        }
+
         private static bool IsGenericList(Type type) =>
             type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>);
 
+        // Used only for nested (same-name, mismatched-type) List<T> destination *properties* -
+        // see MappingPlanCompiler.BuildAutoMapAssignment. The source side stays constrained to an
+        // exact List<T> (MapListWithBuilder's compiled call site expects that concrete type); the
+        // destination side additionally accepts the same List-compatible interfaces recognized by
+        // IsListCompatibleDestination above, since MapListWithBuilder already returns a List<T>,
+        // which is reference-assignable to all of them with no extra work. Array-typed destination
+        // *properties* are a documented limitation for now (unlike the top-level API above) since
+        // producing one from inside a compiled expression tree would need its own dedicated
+        // helper - not worth the added compiler complexity for what both the top-level fix and
+        // 4.x history show is a materially rarer shape for a nested property to be declared as.
         internal static bool TryGetListItemTypes(Type sourceType, Type destType, out Type sourceItemType, out Type destItemType)
         {
-            if (IsGenericList(sourceType) && IsGenericList(destType))
+            if (IsGenericList(sourceType) && IsListCompatibleDestination(destType, out destItemType))
             {
                 sourceItemType = sourceType.GetGenericArguments()[0];
-                destItemType = destType.GetGenericArguments()[0];
                 return true;
             }
 

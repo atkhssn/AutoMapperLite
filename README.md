@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <strong>v4.3.0</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
+  <strong>v4.4.0</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
   <a href="https://automapperlite.atkhssn.info">automapperlite.atkhssn.info</a>
 </p>
 
@@ -17,9 +17,9 @@ Designed to simplify DTO and entity mapping with easy-to-use profiles, support f
 
 Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 
-> **4.3.0 is the current official release.** All prior versions (4.0.2 and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
+> **4.4.0 is the current official release.** All prior versions (4.0.2 and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
 
-📖 Full documentation (Getting Started, API reference, usage guide, performance, FAQ, comparison): **[automapperlite.atkhssn.info](https://automapperlite.atkhssn.info)** once deployed, or open [`docs/index.html`](docs/index.html) locally in a browser.
+📖 Full documentation (Getting Started, API reference, usage guide, performance, FAQ, comparison): **[automapperlite.atkhssn.info](https://automapperlite.atkhssn.info)**.
 
 ---
 
@@ -29,7 +29,7 @@ Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 - Supports nested object mapping, including nested `List<T>` properties whose item types have a registered map.
 - Fluent profile-based configuration similar to AutoMapper.
 - Supports `ForMember` and `ForPath` for custom member and nested member mappings.
-- Supports collection mapping (e.g., List<T>).
+- Supports collection mapping to `List<T>`, arrays, and common collection interfaces (`IList<T>`, `ICollection<T>`, `IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`).
 - Integration via Dependency Injection (DI) — `IMapperConfig` and `IMapper` are both registered as singletons, since neither holds per-request state.
 - Thread-safe: mapping configuration and the mapper itself can be used concurrently.
 - Designed as a small NuGet package for internal project use.
@@ -41,7 +41,7 @@ Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 Install the NuGet package in your project:
 
 ```bash
-dotnet add package AutoMapperLite --version 4.3.0
+dotnet add package AutoMapperLite --version 4.4.0
 ```
 
 ### 1. Register AutoMapperLite in your DI container
@@ -145,7 +145,7 @@ Configures mapping for **nested properties** within the destination object.
 
 ## Supported Features
 
-- Map single objects and collections (`List<T>`).
+- Map single objects and collections (`List<T>`, arrays, `IList<T>`, `ICollection<T>`, `IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`).
 - Auto-mapping properties with the same name and compatible types.
 - Custom member mapping via `ForMember` and `ForPath`.
 - Nested object instantiation and mapping.

@@ -68,6 +68,15 @@ namespace AutoMapperLite.Tests
         public List<EmployeeViewModel> Employees { get; set; } = new();
     }
 
+    // Same shape as DepartmentViewModel, but the collection property is declared as an
+    // interface rather than the concrete List<T> - exercises the destination-property side of
+    // Mapper.TryGetListItemTypes/IsListCompatibleDestination for nested collection properties.
+    public class DepartmentIListViewModel
+    {
+        public string DeptName { get; set; } = string.Empty;
+        public IList<EmployeeViewModel> Employees { get; set; } = new List<EmployeeViewModel>();
+    }
+
     public struct PointStruct
     {
         public int X { get; set; }

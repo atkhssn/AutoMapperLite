@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>API Reference — AutoMapperLite</title>
-<meta name="description" content="Full API reference for AutoMapperLite 4.2.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
+<meta name="description" content="Full API reference for AutoMapperLite 4.4.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
 <link rel="canonical" href="https://automapperlite.atkhssn.info/api-reference.html">
 <meta name="robots" content="index, follow">
 
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AutoMapperLite">
 <meta property="og:title" content="API Reference — AutoMapperLite">
-<meta property="og:description" content="Full API reference for AutoMapperLite 4.2.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
+<meta property="og:description" content="Full API reference for AutoMapperLite 4.4.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
 <meta property="og:url" content="https://automapperlite.atkhssn.info/api-reference.html">
 <meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -26,7 +26,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="API Reference — AutoMapperLite">
-<meta name="twitter:description" content="Full API reference for AutoMapperLite 4.2.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
+<meta name="twitter:description" content="Full API reference for AutoMapperLite 4.4.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
 <meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
 
 <link rel="stylesheet" href="assets/styles.css">
@@ -97,7 +97,7 @@
         </p>
         <ul>
           <li>If <code>source</code> is <code>null</code>, returns <code>default(TDestination)</code> (<code>null</code> for reference types).</li>
-          <li>If <code>TDestination</code> is <code>List&lt;T&gt;</code>, <code>source</code> must implement <code>IEnumerable</code>; each element is mapped individually into a new <code>List&lt;T&gt;</code>.</li>
+          <li>If <code>TDestination</code> is <code>List&lt;T&gt;</code>, <code>T[]</code>, <code>IList&lt;T&gt;</code>, <code>ICollection&lt;T&gt;</code>, <code>IReadOnlyList&lt;T&gt;</code>, <code>IReadOnlyCollection&lt;T&gt;</code>, or <code>IEnumerable&lt;T&gt;</code>, <code>source</code> must implement <code>IEnumerable</code>; each element is mapped individually into a new collection of the requested shape.</li>
           <li>Throws <code>InvalidOperationException</code> directly if no matching <code>CreateMap</code> was registered.</li>
         </ul>
         <pre><code>LocationViewModel dto = mapper.Map&lt;LocationViewModel&gt;(location);
@@ -285,7 +285,7 @@ builder.Services.AddAutoMapperLite(Assembly.GetExecutingAssembly());</code></pre
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.3.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.4.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>
