@@ -18,27 +18,36 @@ This is a point-in-time engineering report for the 4.4.0 release — the direct 
 
 ## 3. Summary
 
-4.4.0 replaces AutoMapperLite's interpreted-reflection mapping engine (used through 4.0.2) with one that compiles each source/destination type pair into a cached delegate, and adds broader collection-destination type support (arrays and common collection interfaces, not just `List<T>`).
+4.4.0 replaces AutoMapperLite's interpreted-reflection mapping engine (used through 4.0.2) with one that compiles each source/destination type pair into a cached delegate, adds broader collection-destination type support (arrays and common collection interfaces, not just `List<T>`), and — most significantly for throughput — fixes a collection-loop interface-dispatch cost that was quietly limiting collection performance (see §7).
 
 | Benchmark | 4.0.2 | 4.4.0 | Speedup |
 |---|---|---|---|
-| Simple object (generic API) | 242.0 ns | 17.8 ns | ~13.6x |
-| Nested object (generic API) | 424.1 ns | 42.0 ns | ~10.1x |
-| 100-item collection | 26,009.1 ns | 1,210.9 ns | ~21.5x |
+| Simple object (generic API) | 242.0 ns | 27.5 ns | ~8.8x |
+| Nested object (generic API) | 424.1 ns | 64.0 ns | ~6.6x |
+| 100-item collection | 26,009.1 ns | 779.9 ns | ~33.3x |
 
 ## 4. Object Mapping vs. Manual / AutoMapper / Mapster
 
 | Scenario (generic API) | Manual | AutoMapperLite | AutoMapper | Mapster |
 |---|---|---|---|---|
-| Simple | 4.3 ns | 17.8 ns | 54.9 ns | 14.4 ns |
-| Medium | 8.5–9.3 ns | 29.2 ns | 49.5 ns | 17.3 ns |
-| Nested | 12.5–16.0 ns | 42.0 ns | 53.9 ns | 26.6 ns |
-| Deeply nested (4 levels) | 55.0–89.3 ns | 68.1 ns | 91.6 ns | 53.4 ns |
-| Custom | 50.3–52.1 ns | 51.5 ns | 132.9 ns | 32.2 ns |
+| Simple | 6.1 ns | 27.5 ns | 63.4 ns | 18.4 ns |
+| Medium | 11.9 ns | 32.2 ns | 75.5 ns | 31.1 ns |
+| Nested | 17.4 ns | 63.2–64.0 ns | 77.0 ns | 30.8 ns |
+| Deeply nested (4 levels) | 33.4 ns | 98.5 ns | 123.2 ns | 68.4 ns |
+| Custom | 37.8 ns | 41.2 ns | 83.3 ns | 24.0 ns |
 
-AutoMapperLite beats AutoMapper on all five scenarios. Mapster is faster than AutoMapperLite on raw per-call time in every scenario.
+AutoMapperLite beats AutoMapper on all five scenarios. Mapster is faster than AutoMapperLite on raw per-call time in every object scenario (Custom is close: 24.0 ns vs. 41.2 ns).
 
-## 5. Allocation
+## 5. Collection Mapping vs. Manual / AutoMapper / Mapster
+
+| Scenario (generic API) | Manual | AutoMapperLite | AutoMapper | Mapster |
+|---|---|---|---|---|
+| 100 items | 499.5 ns | 666.8 ns | 922.7 ns | 553.1 ns |
+| 5,000 items | 27.32 µs | 34.04 µs | 43.17 µs | 29.28 µs |
+
+**AutoMapperLite now beats AutoMapper on both collection scenarios** — a reversal from earlier measurements this release cycle (previously AutoMapperLite trailed AutoMapper here), caused by the collection-loop fix in §7, not a methodology change. It remains behind Mapster, though the gap has narrowed substantially (see §7 for the full scaling picture).
+
+## 6. Allocation
 
 | Scenario | Manual | AutoMapperLite | AutoMapper | Mapster |
 |---|---|---|---|---|
@@ -47,50 +56,71 @@ AutoMapperLite beats AutoMapper on all five scenarios. Mapster is faster than Au
 | Nested | 80 B | 80 B | 80 B | 80 B |
 | Deeply nested | 248 B | 248 B | 248 B | 248 B |
 | Custom | 80 B | **104 B** | 80 B | 112 B |
-| 100 items | 3.96 KB | 4.06 KB | 5.27 KB | 3.96 KB |
-| 5,000 items | 195.37 KB | 195.48 KB | 284.53 KB | 195.37 KB |
+| 100 items (generic API) | 3.96 KB | 3.96 KB | 5.27 KB | 3.96 KB |
+| 5,000 items (generic API) | 195.37 KB | 195.37 KB | 284.53 KB | 195.37 KB |
 | Cold start | — | 7.9 KB | 20.02 KB | 95.38 KB |
 
-Custom mapping's 24 B gap is understood and documented — see §8.
+The generic collection API's allocation now matches Manual/Mapster exactly at both sizes shown — a byproduct of the same loop fix in §7 (avoiding a boxed enumerator removes a small allocation, not just time). Custom mapping's 24 B gap is understood and documented — see §9.
 
-## 6. Cold Start
+## 7. Optimization: Collection Loop Specialization
 
-| Library | Mean time | Allocated |
-|---|---|---|
-| AutoMapperLite | 176.6–179.2 µs | 7.9 KB |
-| AutoMapper | 342.6–345.9 µs | 20.02 KB |
-| Mapster | 416.0–430.1 µs | 95.38 KB |
+**Problem.** `Mapper.BuildListMapper` (backing every collection-mapping call) cast the source to `IEnumerable<TSourceItem>` and used `foreach`. For a `List<T>` source — the overwhelmingly common case — this forces `GetEnumerator()` through the interface, which boxes `List<T>`'s own struct enumerator once per call. Separately, the per-item mapper-resolution check (`compiledMap ??= ...`) ran inside the loop on every iteration; since the resolved delegate is stored in a closure field shared across threads, the JIT cannot safely cache that field read in a register across loop iterations the way it could a true local.
 
-AutoMapperLite is fastest and lowest-allocating on cold start: it compiles only the one type pair actually requested, lazily.
+**Root cause, confirmed by measurement, not assumed:** interface-dispatch/enumerator-boxing overhead, not the outer per-call dispatch cost that earlier releases' collection-scaling analysis had assumed was the dominant factor.
 
-## 7. Collection Scaling (10 → 100,000 items)
+**Fix.** The loop now pattern-matches `List<TSourceItem>` and `TSourceItem[]` first, indexing directly (`list[i]` / `array[i]`), and falls back to the general `IEnumerable<TSourceItem>` enumerator only for other source shapes. The per-item delegate is resolved once, immediately before whichever loop starts (still lazily — an empty collection never reaches the resolution line, preserving the documented "empty collection needs no registered map" behavior). The identical fix was applied to `Mapper.BuildTypedListEntryPoint` (the generic collection API added earlier in the 4.4.0 cycle), which had the same shape.
 
-| Size | Manual | AutoMapperLite | AutoMapper | Mapster | AML alloc ratio vs Manual |
+**Measured impact** (same benchmark scenarios, before/after, same hardware):
+
+| Scenario | Before | After | Change |
+|---|---|---|---|
+| 100-item collection (object API) | ~1,301 ns | 779.9 ns | ~40% faster |
+| 100-item collection (generic API) | ~1,222 ns | 666.8 ns | ~45% faster |
+| 5,000-item collection (object API) | ~59.6–74 µs | 34.90 µs | ~41–53% faster |
+| 5,000-item collection (generic API) | ~61 µs | 34.04 µs | ~44% faster |
+| 100-item allocation (generic API) | ~4.0 KB | 3.96 KB | now matches Manual exactly |
+| 5,000-item allocation (generic API) | ~195.4 KB | 195.37 KB | now matches Manual exactly |
+
+**Trade-offs.** Three code paths (List/array/general-enumerable) instead of one, in two methods. No allocation regression; no cold-start impact (this is warm-path-only code, unrelated to plan compilation). No correctness change — verified via `--verify` and the full existing test suite (156 tests) with no modifications needed to either.
+
+**Why it was kept:** large, real, measured, correctness-preserving improvement with no discovered trade-off.
+
+## 8. Collection Scaling (10 → 100,000 items, after the fix in §7)
+
+| Size | Manual | AutoMapperLite | AutoMapper | Mapster | AML time ratio vs Manual |
 |---|---|---|---|---|---|
-| 10 | 68.5 ns / 456 B | 222.9 ns / 560 B | 161.9 ns / 648 B | 78.4 ns / 456 B | 1.23x |
-| 1,000 | 4.75 µs / 40.06 KB | 11.83 µs / 40.16 KB | 7.14 µs / 48.60 KB | 5.20 µs / 40.06 KB | 1.00x |
-| 10,000 | 66.9 µs / 400.06 KB | 131.9 µs / 400.18 KB | 236.8 µs / 582.47 KB | 108.1 µs / 400.06 KB | 1.00x |
-| 100,000 | 4.28 ms / 4,000.09 KB | 5.11 ms / 4,000.27 KB | 6.02 ms / 5,297.63 KB | 4.43 ms / 4,000.09 KB | 1.00x |
+| 10 | 66.9 ns / 456 B | 160.5 ns / 520 B | 163.2 ns / 648 B | 81.5 ns / 456 B | 2.40x |
+| 1,000 | 4.97 µs / 40.06 KB | 6.75 µs / 40.12 KB | 7.24 µs / 48.60 KB | 5.26 µs / 40.06 KB | 1.36x |
+| 10,000 | 68.7 µs / 400.06 KB | 83.5 µs / 400.14 KB | 297.4 µs / 582.47 KB | 72.0 µs / 400.06 KB | 1.22x |
+| 100,000 | 3.02 ms / 4,000.09 KB | 3.27 ms / 4,000.23 KB | 3.97 ms / 5,297.63 KB | 3.04 ms / 4,000.09 KB | 1.08x |
 
-Allocation ratio to Manual stays at 1.00–1.23x regardless of scale. Time ratio to Manual shrinks as scale grows (3.3x → 1.2x), and AutoMapperLite beats AutoMapper on both time and allocation from 10,000 items upward.
+Before the §7 fix, these ratios were 3.26x / 2.49x / 1.97x / 1.19x respectively — the fix improved every size, with the largest relative gains at small-to-medium scale (where the fixed per-item overhead being removed is a larger fraction of total time). **AutoMapperLite now beats AutoMapper on time and allocation at every size from 1,000 items upward**, and at 100,000 items is within 8% of Manual mapping's own time and within 0.006% of its allocation — essentially matching hand-written code at scale.
 
-## 8. Known Limitation: Custom Mapping's Extra ~24 B Allocation
+## 9. Known Limitation: Custom Mapping's Extra ~24 B Allocation
 
 `ForMember<TMember>`'s callback parameter is typed `Func<TSource, object?>`, not `Func<TSource, TMember>`, even though `TMember` is already known from the destination expression. For a value-typed member (e.g. an `int`), the compiler boxes the result into `object` on every call — this is the entire, confirmed ~24 B/call gap.
 
-This is deliberately not "fixed": retyping the callback to `Func<TSource, TMember>` is a breaking API change, not a safe internal optimization. `ForMember` currently allows returning a deliberately mismatched type to get a descriptive runtime exception (a documented, tested behavior); a stricter signature would reject that at compile time. A cost this small, tied directly to a load-bearing part of the public API's shape, is not worth a breaking change to remove without an explicit decision from the library's maintainer.
+Changing the *existing* overload's signature to `Func<TSource, TMember>` would be a breaking API change: `ForMember` currently allows returning a deliberately mismatched type to get a descriptive runtime exception (a documented, tested behavior), and a stricter signature would reject that at compile time. An *additive* second overload was investigated instead and found genuinely non-breaking — see §12 for why it still wasn't implemented (the blocker is internal storage complexity, not API compatibility).
 
-## 9. Known Limitation: Array-Typed Nested Collection Properties
+## 10. Known Limitation: Array-Typed Nested Collection Properties
 
 The top-level `Map<TDestination>(object)` API supports array destinations. Same-name nested collection *properties* do not — an array-typed nested property is silently skipped, the same as any other unregistered type mismatch. Producing an array from inside a compiled expression tree would need a second, array-returning helper; not implemented in 4.4.0, since it's a rarer shape than the top-level fix already covers. The nested-property source side also remains constrained to `List<T>`.
 
-## 10. Remaining Bottlenecks
+## 11. Remaining Bottlenecks
 
-- **Collection mapping time** trails Mapster and, at small/medium scale, AutoMapper, because AutoMapperLite's public API dispatches through an `object` boundary at the outer call — an architectural/API-shape difference from Mapster's static-generic calling convention, not an unaddressed inefficiency.
-- **Custom mapping allocation** (§8) — understood, not fixed without a breaking API change.
-- **Array-typed nested collection properties** (§9) — documented scope boundary.
+- **Collection mapping time vs. Mapster** — AutoMapperLite's public API dispatches through an `object` boundary at the outer call (once per call, not per item); Mapster's `source.Adapt<T>()` pattern is generic on the caller's own static type and sidesteps this entirely. This is an architectural/API-shape difference, not an unaddressed inefficiency. AutoMapperLite no longer trails AutoMapper on collections (see §5, §8).
+- **Custom mapping allocation** (§9) — understood, not fixed without a breaking API change.
+- **Array-typed nested collection properties** (§10) — documented scope boundary.
 
-## 11. Future Opportunities
+## 12. Rejected Optimization Attempt
 
-- Retyping `ForMember`'s callback to `Func<TSource, TMember>` would eliminate the Custom-mapping boxing cost at the price of breaking the mismatched-type-exception pattern — worth a deliberate major-version discussion, not a silent change.
-- Generalizing nested collection properties to support array destinations and array/interface sources would require a second, array-returning compiled-loop helper.
+**Attempt:** eliminate `ForMember`'s value-type boxing (§9) by adding a second `ForMember<TMember>(destination, Func<TSource, TMember> mapFunc)` overload, letting C# overload resolution automatically prefer the boxing-free shape for ordinary value-returning lambdas while preserving the existing `Func<TSource, object?>` overload for callers intentionally returning a mismatched type.
+
+**Result:** not implemented.
+
+**Why it was rejected:** `MapBuilder<,>.MemberMappings` (the dictionary storing registered callbacks) is `internal` but directly exercised by existing tests (`MapBuilderTests.cs`) that assert on its exact shape (`Dictionary<string, Func<TSource, object?>>`) and invoke stored delegates directly. Supporting a genuinely boxing-free typed overload would require either a second parallel dictionary or a wrapper type, both of which ripple into `MappingPlanCompiler`'s per-property compilation logic and `MapBuilder`'s nested-key indexing (`BuildNestedKeyGroups`), and would need a consistent "last write wins across two storage locations" rule for the rare case of a property configured via both overloads. The complexity added — new dictionary, doubled bookkeeping in two classes, more surface area for subtle bugs — is disproportionate to the benefit: eliminating a 24 B/call allocation in a scenario (`ForMember` with a value-type target) that isn't a competitive bottleneck (Custom mapping already beats AutoMapper by ~2x). Consistent with "do not sacrifice maintainability for a few nanoseconds unless the gain is real and significant."
+
+## 13. Future Opportunities
+
+- The `ForMember` boxing fix from §12 remains available as a genuinely non-breaking, purely additive change if the library's maintainer decides the added internal complexity is worth it — the design was already worked out (see §12) and doesn't require a major-version bump, since it's additive.
+- Generalizing nested collection properties to support array destinations and array/interface sources would require a second, array-returning compiled-loop helper in `MappingPlanCompiler`.

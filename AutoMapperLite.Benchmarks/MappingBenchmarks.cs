@@ -269,6 +269,12 @@ namespace AutoMapperLite.Benchmarks
         [Benchmark]
         public List<SimpleDestination> AutoMapperLite_() => AutoMapperLite.Map<List<SimpleDestination>>(SourceList100);
 
+        // Typed collection API: both the source and destination collection types are known at
+        // the call site, so this skips SourceList100.GetType() and the entry-point cache
+        // entirely - see Mapper.BuildTypedListEntryPoint.
+        [Benchmark]
+        public List<SimpleDestination> AutoMapperLite_Typed() => AutoMapperLite.Map<List<SimpleSource>, List<SimpleDestination>>(SourceList100);
+
         [Benchmark]
         public List<SimpleDestination> AutoMapper_() => AutoMapper.Map<List<SimpleDestination>>(SourceList100);
 
@@ -289,6 +295,9 @@ namespace AutoMapperLite.Benchmarks
 
         [Benchmark]
         public List<SimpleDestination> AutoMapperLite_() => AutoMapperLite.Map<List<SimpleDestination>>(SourceList5000);
+
+        [Benchmark]
+        public List<SimpleDestination> AutoMapperLite_Typed() => AutoMapperLite.Map<List<SimpleSource>, List<SimpleDestination>>(SourceList5000);
 
         [Benchmark]
         public List<SimpleDestination> AutoMapper_() => AutoMapper.Map<List<SimpleDestination>>(SourceList5000);

@@ -34,6 +34,9 @@ namespace AutoMapperLite
         private static readonly MethodInfo BuildTypedEntryPointDefinition =
             typeof(Mapper).GetMethod(nameof(BuildTypedEntryPoint), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
+        private static readonly MethodInfo BuildTypedListEntryPointDefinition =
+            typeof(Mapper).GetMethod(nameof(BuildTypedListEntryPoint), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
         private static readonly MethodInfo BuildListMapperDefinition =
             typeof(Mapper).GetMethod(nameof(BuildListMapper), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
@@ -168,8 +171,90 @@ namespace AutoMapperLite
         // (as a boxed Delegate reference, cast back at the _typedEntryPoints call site) instead
         // of wrapping it in an object-parameter closure, so Map<TSource,TDestination> never
         // touches `object` at all - no source.GetType(), no cast, no boxing.
-        private Delegate BuildTypedEntryPoint<TSource, TDestination>() =>
-            _config.GetMap<TSource, TDestination>().GetCompiledMap(_config);
+        //
+        // If TDestination isn't itself directly registered, but is List<TDestItem> and TSource's
+        // own declared item type can be determined (List<T>, an array, or anything implementing
+        // IEnumerable<T> - see TryGetDeclaredItemType), this builds a strongly-typed collection
+        // loop instead - the typed-API equivalent of the untyped Map<TDestination>(object) path's
+        // collection handling in MapList, but resolved once here via the compile-time TSource/
+        // TDestination instead of source.GetType() on every call. This is what lets
+        // mapper.Map<List<TSourceItem>, List<TDestItem>>(sourceList) skip runtime type discovery
+        // entirely, the same way the single-object typed overload already does.
+        private Delegate BuildTypedEntryPoint<TSource, TDestination>()
+        {
+            if (!_config.HasMap(typeof(TSource), typeof(TDestination)))
+            {
+                var destType = typeof(TDestination);
+                if (destType.IsGenericType && destType.GetGenericTypeDefinition() == typeof(List<>)
+                    && TryGetDeclaredItemType(typeof(TSource), out var sourceItemType))
+                {
+                    var destItemType = destType.GetGenericArguments()[0];
+                    var buildMethod = BuildTypedListEntryPointDefinition.MakeGenericMethod(
+                        typeof(TSource), sourceItemType, destItemType);
+                    return (Delegate)InvokeBuilder(buildMethod);
+                }
+            }
+
+            return _config.GetMap<TSource, TDestination>().GetCompiledMap(_config);
+        }
+
+        // Built once per (Mapper instance, TSource, TDestItem) triple. Mirrors BuildListMapper
+        // below (same lazy per-item-type resolution, so an empty collection never requires a
+        // registered map) but is typed on the actual TSource collection type directly - since the
+        // caller already knows both types at compile time, there's no object boxing of the source
+        // or destination anywhere in this path.
+        private Delegate BuildTypedListEntryPoint<TSource, TSourceItem, TDestItem>()
+            where TSource : IEnumerable<TSourceItem>
+        {
+            var config = _config;
+            Func<TSourceItem, TDestItem>? compiledItemMap = null;
+
+            // Same specialization and reasoning as BuildListMapper above: a List<TSourceItem>/
+            // TSourceItem[] runtime-type check (an `isinst`, valid regardless of TSource being a
+            // JIT-shared reference-type generic parameter here) lets the common cases index
+            // directly instead of going through `IEnumerable<TSourceItem>.GetEnumerator()`, which
+            // boxes List<T>'s own struct enumerator when reached only through the interface. The
+            // item delegate is still resolved once, immediately before whichever loop runs, not
+            // via `??=` inside it, for the same "closure field can't be register-hoisted across
+            // loop iterations of a shared, multi-threaded delegate" reason.
+            Func<TSource, List<TDestItem>> del = source =>
+            {
+                if (source is List<TSourceItem> list)
+                {
+                    var result = new List<TDestItem>(list.Count);
+                    if (list.Count == 0) return result;
+                    compiledItemMap ??= config.GetMap<TSourceItem, TDestItem>().GetCompiledMap(config);
+                    for (int i = 0; i < list.Count; i++)
+                        result.Add(compiledItemMap(list[i]));
+                    return result;
+                }
+
+                if (source is TSourceItem[] array)
+                {
+                    var result = new List<TDestItem>(array.Length);
+                    if (array.Length == 0) return result;
+                    compiledItemMap ??= config.GetMap<TSourceItem, TDestItem>().GetCompiledMap(config);
+                    for (int i = 0; i < array.Length; i++)
+                        result.Add(compiledItemMap(array[i]));
+                    return result;
+                }
+
+                var fallbackResult = source is ICollection<TSourceItem> sized
+                    ? new List<TDestItem>(sized.Count)
+                    : new List<TDestItem>();
+
+                using var enumerator = source.GetEnumerator();
+                if (!enumerator.MoveNext()) return fallbackResult;
+                compiledItemMap ??= config.GetMap<TSourceItem, TDestItem>().GetCompiledMap(config);
+                do
+                {
+                    fallbackResult.Add(compiledItemMap(enumerator.Current));
+                } while (enumerator.MoveNext());
+
+                return fallbackResult;
+            };
+            return del;
+        }
 
         // BuildEntryPoint (unlike the old design) resolves config.GetMap<,>() eagerly, so a
         // missing registration now throws *during* this reflective Invoke call and would
@@ -282,22 +367,56 @@ namespace AutoMapperLite
             // captured variable (multiple threads may each resolve and assign it independently)
             // remains safe: config.GetMap<,>().GetCompiledMap(config) is a pure, idempotent
             // lookup that always returns the exact same delegate reference.
+            //
+            // Specializes List<TSourceItem> and TSourceItem[] with direct indexing, ahead of the
+            // general IEnumerable<TSourceItem> fallback, for two measured reasons: (1) casting to
+            // the interface and using `foreach` forces IEnumerator<TSourceItem> dispatch through
+            // the interface, which for List<T> boxes its own struct enumerator once per call (not
+            // per item, but still a real, avoidable allocation for the overwhelmingly common
+            // source shape); (2) `compiledMap ??= ...` inside a `foreach` reads a captured closure
+            // field every iteration - the JIT cannot safely hoist that read to a register across
+            // loop iterations because the delegate is shared and callable from multiple threads,
+            // so every one of these three loop shapes resolves it once, immediately before the
+            // loop starts (still lazily - an empty collection never reaches the resolution line),
+            // leaving the loop itself reading a true local, not a field, on every iteration.
             Func<TSourceItem, TDestItem>? compiledMap = null;
 
             return sourceObj =>
             {
+                if (sourceObj is List<TSourceItem> list)
+                {
+                    var result = new List<TDestItem>(list.Count);
+                    if (list.Count == 0) return result;
+                    compiledMap ??= config.GetMap<TSourceItem, TDestItem>().GetCompiledMap(config);
+                    for (int i = 0; i < list.Count; i++)
+                        result.Add(compiledMap(list[i]));
+                    return result;
+                }
+
+                if (sourceObj is TSourceItem[] array)
+                {
+                    var result = new List<TDestItem>(array.Length);
+                    if (array.Length == 0) return result;
+                    compiledMap ??= config.GetMap<TSourceItem, TDestItem>().GetCompiledMap(config);
+                    for (int i = 0; i < array.Length; i++)
+                        result.Add(compiledMap(array[i]));
+                    return result;
+                }
+
                 var sourceEnum = (IEnumerable<TSourceItem>)sourceObj;
-                var result = sourceObj is ICollection<TSourceItem> sized
+                var fallbackResult = sourceObj is ICollection<TSourceItem> sized
                     ? new List<TDestItem>(sized.Count)
                     : new List<TDestItem>();
 
-                foreach (var item in sourceEnum)
+                using var enumerator = sourceEnum.GetEnumerator();
+                if (!enumerator.MoveNext()) return fallbackResult;
+                compiledMap ??= config.GetMap<TSourceItem, TDestItem>().GetCompiledMap(config);
+                do
                 {
-                    compiledMap ??= config.GetMap<TSourceItem, TDestItem>().GetCompiledMap(config);
-                    result.Add(compiledMap(item));
-                }
+                    fallbackResult.Add(compiledMap(enumerator.Current));
+                } while (enumerator.MoveNext());
 
-                return result;
+                return fallbackResult;
             };
         }
 

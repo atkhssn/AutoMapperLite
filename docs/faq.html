@@ -104,7 +104,7 @@
       "name": "How does AutoMapperLite compare with AutoMapper?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "AutoMapperLite is smaller in scope \u2014 no LINQ ProjectTo, no compiled-expression engine \u2014 in exchange for a minimal dependency footprint and no commercial licensing considerations. See the full comparison."
+        "text": "Both compile mappings into cached expression-tree delegates rather than using reflection at runtime. AutoMapperLite is smaller in scope than AutoMapper \u2014 no LINQ ProjectTo, no large convention engine \u2014 in exchange for a minimal dependency footprint and no commercial licensing considerations. See the full comparison."
       }
     },
     {
@@ -136,7 +136,7 @@
       "name": "Does AutoMapperLite support collections?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes \u2014 top-level List&lt;T&gt; mapping and nested List&lt;T&gt; destination properties, as long as a map is registered for the item types. See Examples \u2192 Collections."
+        "text": "Yes \u2014 List&lt;T&gt;, arrays, and common collection interfaces (IList&lt;T&gt;, ICollection&lt;T&gt;, IReadOnlyList&lt;T&gt;, IReadOnlyCollection&lt;T&gt;, IEnumerable&lt;T&gt;) are all supported as mapping destinations, both at the top level and as nested properties, as long as a map is registered for the item types. See Examples \u2192 Collections."
       }
     },
     {

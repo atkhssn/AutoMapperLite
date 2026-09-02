@@ -45,6 +45,51 @@ namespace AutoMapperLite.Tests
         }
 
         [Fact]
+        public void Map_TypedOverload_MapsListOfObjects_ViaListSource()
+        {
+            // Map<TSource,TDestination>(TSource) where TDestination is List<TDestItem> and
+            // TSource is itself List<TSourceItem> - the typed-API equivalent of the untyped
+            // collection path, exercising Mapper.BuildTypedListEntryPoint.
+            var config = new MapperConfig();
+            config.CreateMap<SimpleSource, SimpleDestination>();
+            var mapper = new Mapper(config);
+
+            var sources = new List<SimpleSource> { new() { Id = 1, Name = "a" }, new() { Id = 2, Name = "b" } };
+
+            var result = mapper.Map<List<SimpleSource>, List<SimpleDestination>>(sources);
+
+            Assert.Equal(2, result.Count);
+            Assert.Equal("a", result[0].Name);
+            Assert.Equal("b", result[1].Name);
+        }
+
+        [Fact]
+        public void Map_TypedOverload_MapsListOfObjects_ViaArraySource()
+        {
+            var config = new MapperConfig();
+            config.CreateMap<SimpleSource, SimpleDestination>();
+            var mapper = new Mapper(config);
+
+            var sources = new[] { new SimpleSource { Id = 1, Name = "a" }, new SimpleSource { Id = 2, Name = "b" } };
+
+            var result = mapper.Map<SimpleSource[], List<SimpleDestination>>(sources);
+
+            Assert.Equal(2, result.Count);
+            Assert.Equal("b", result[1].Name);
+        }
+
+        [Fact]
+        public void Map_TypedOverload_MapsEmptyList_WithoutRequiringRegisteredMap()
+        {
+            var config = new MapperConfig();
+            var mapper = new Mapper(config);
+
+            var result = mapper.Map<List<SimpleSource>, List<SimpleDestination>>(new List<SimpleSource>());
+
+            Assert.Empty(result);
+        }
+
+        [Fact]
         public void Map_AutoMapsNestedSingleObjectProperty_WhenSameNameAndTypesRegistered()
         {
             // Widget.Gadget and WidgetDto.Gadget share a property name but differ in type -

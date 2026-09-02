@@ -85,13 +85,13 @@
           <tr><td>Collection mapping</td><td>Yes — <code>List&lt;T&gt;</code>, arrays, and common collection interfaces as destinations, incl. nested properties</td><td>Yes</td><td>Yes</td></tr>
           <tr><td>Dependency injection integration</td><td>Built in (<code>AddAutoMapperLite</code>)</td><td>Via separate package</td><td>Via separate package</td></tr>
           <tr><td>.NET targets</td><td>net6.0 – net10.0</td><td>Broad, actively maintained</td><td>Broad, actively maintained</td></tr>
-          <tr><td>Mapping a simple object (mean time, generic API)</td><td>29.6&nbsp;ns</td><td>69.7&nbsp;ns</td><td>17.2&nbsp;ns</td></tr>
+          <tr><td>Mapping a simple object (mean time, generic API)</td><td>27.5&nbsp;ns</td><td>63.4&nbsp;ns</td><td>18.4&nbsp;ns</td></tr>
           <tr><td>Mapping a simple object (allocated)</td><td>32&nbsp;B</td><td>32&nbsp;B</td><td>32&nbsp;B</td></tr>
-          <tr><td>Mapping a 100-item collection (mean time)</td><td>1,385.5&nbsp;ns</td><td>1,204.8&nbsp;ns</td><td>792.1&nbsp;ns</td></tr>
-          <tr><td>Mapping a 100-item collection (allocated)</td><td>4.06&nbsp;KB</td><td>5.27&nbsp;KB</td><td>3.96&nbsp;KB</td></tr>
-          <tr><td>Cold start (first call, incl. compilation)</td><td>214.8&nbsp;µs</td><td>438.0&nbsp;µs</td><td>445.3&nbsp;µs</td></tr>
+          <tr><td>Mapping a 100-item collection (mean time, generic API)</td><td>666.8&nbsp;ns</td><td>922.7&nbsp;ns</td><td>553.1&nbsp;ns</td></tr>
+          <tr><td>Mapping a 100-item collection (allocated)</td><td>3.96&nbsp;KB</td><td>5.27&nbsp;KB</td><td>3.96&nbsp;KB</td></tr>
+          <tr><td>Cold start (first call, incl. compilation)</td><td>214.0&nbsp;µs</td><td>409.2&nbsp;µs</td><td>460.3&nbsp;µs</td></tr>
         </tbody>
-        <caption>Throughput rows are measured with BenchmarkDotNet — see <a href="performance.html">Performance</a> for the full results, methodology, and every scenario. AutoMapperLite now beats AutoMapper on simple-object mapping and has the fastest cold start of the three; collection-mapping time is now close to AutoMapper's (previously a large gap) and its allocation is within a few percent of Mapster's/manual mapping's at any collection size. Its value proposition remains dependency footprint and simplicity, not raw per-call throughput against Mapster specifically.</caption>
+        <caption>Throughput rows are measured with BenchmarkDotNet — see <a href="performance.html">Performance</a> for the full results, methodology, and every scenario. AutoMapperLite now beats AutoMapper on simple-object mapping, collection mapping, and has the fastest cold start of the three; its allocation is within a few percent of Mapster's/manual mapping's at any collection size. Its value proposition remains dependency footprint and simplicity — Mapster is still faster on raw per-call throughput.</caption>
       </table>
       </div>
     </section>

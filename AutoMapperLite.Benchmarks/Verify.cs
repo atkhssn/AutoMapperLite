@@ -67,9 +67,11 @@ namespace AutoMapperLite.Benchmarks
             Check("Custom: Mapster", custMs.FullName == "Ada Lovelace" && custMs.Age == expectedAge, $"got '{custMs.FullName}', age={custMs.Age}");
 
             var listAml = h.AutoMapperLite.Map<List<SimpleDestination>>(h.SourceList100);
+            var listAmlTyped = h.AutoMapperLite.Map<List<SimpleSource>, List<SimpleDestination>>(h.SourceList100);
             var listAm = h.AutoMapper.Map<List<SimpleDestination>>(h.SourceList100);
             var listMs = h.SourceList100.Adapt<List<SimpleDestination>>(h.MapsterConfig);
             Check("Collection100: AutoMapperLite", listAml.Count == 100 && listAml[99].Name == "Item 99");
+            Check("Collection100: AutoMapperLite (typed API)", listAmlTyped.Count == 100 && listAmlTyped[99].Name == "Item 99");
             Check("Collection100: AutoMapper", listAm.Count == 100 && listAm[99].Name == "Item 99");
             Check("Collection100: Mapster", listMs.Count == 100 && listMs[99].Name == "Item 99");
 

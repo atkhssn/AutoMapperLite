@@ -103,6 +103,26 @@
         <pre><code>LocationViewModel dto = mapper.Map&lt;LocationViewModel&gt;(location);
 List&lt;SimpleDto&gt; list  = mapper.Map&lt;List&lt;SimpleDto&gt;&gt;(sourceList);</code></pre>
       </div>
+
+      <div class="api-entry">
+        <h3>Map&lt;TSource, TDestination&gt;(TSource source)</h3>
+        <code class="signature">TDestination Map&lt;TSource, TDestination&gt;(TSource source);</code>
+        <p>
+          Maps <code>source</code> to a new instance of <code>TDestination</code> using the map
+          registered for the exact <code>(TSource, TDestination)</code> pair. Prefer this overload
+          over <code>Map&lt;TDestination&gt;(object)</code> whenever the source type is known at the
+          call site: it skips resolving <code>source.GetType()</code> and avoids boxing the return
+          value, making it the fastest way to call AutoMapperLite.
+        </p>
+        <ul>
+          <li>If <code>source</code> is <code>null</code>, returns <code>default(TDestination)</code>.</li>
+          <li>Dispatches by the <em>compile-time</em> type <code>TSource</code>, not <code>source</code>'s runtime type — the one behavioral difference from the untyped overload.</li>
+          <li>If <code>TDestination</code> is <code>List&lt;TDestItem&gt;</code> and <code>TSource</code> is itself a collection (<code>List&lt;TSourceItem&gt;</code>, an array, or anything implementing <code>IEnumerable&lt;TSourceItem&gt;</code>), this maps every element without requiring a map registered for the collection types themselves — only for the item types.</li>
+          <li>Throws <code>InvalidOperationException</code> directly if no matching <code>CreateMap</code> was registered.</li>
+        </ul>
+        <pre><code>SimpleDto dto = mapper.Map&lt;SimpleSource, SimpleDto&gt;(source);
+List&lt;SimpleDto&gt; list = mapper.Map&lt;List&lt;SimpleSource&gt;, List&lt;SimpleDto&gt;&gt;(sourceList);</code></pre>
+      </div>
     </section>
 
     <section id="imapperconfig">
