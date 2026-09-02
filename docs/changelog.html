@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Changelog — AutoMapperLite</title>
-<meta name="description" content="Release history for AutoMapperLite. 4.0.2 is the current official release; all prior versions are deprecated.">
+<meta name="description" content="Release history for AutoMapperLite. 4.3.0 is the current official release; all prior versions are deprecated.">
 <link rel="canonical" href="https://automapperlite.atkhssn.info/changelog.html">
 <meta name="robots" content="index, follow">
 
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AutoMapperLite">
 <meta property="og:title" content="Changelog — AutoMapperLite">
-<meta property="og:description" content="Release history for AutoMapperLite. 4.0.2 is the current official release; all prior versions are deprecated.">
+<meta property="og:description" content="Release history for AutoMapperLite. 4.3.0 is the current official release; all prior versions are deprecated.">
 <meta property="og:url" content="https://automapperlite.atkhssn.info/changelog.html">
 <meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -26,7 +26,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Changelog — AutoMapperLite">
-<meta name="twitter:description" content="Release history for AutoMapperLite. 4.0.2 is the current official release; all prior versions are deprecated.">
+<meta name="twitter:description" content="Release history for AutoMapperLite. 4.3.0 is the current official release; all prior versions are deprecated.">
 <meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
 
 <link rel="stylesheet" href="assets/styles.css">
@@ -69,8 +69,60 @@
       <p class="lead">Release history for AutoMapperLite. Full detail also maintained in <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/CHANGELOG.md">CHANGELOG.md</a>.</p>
     </section>
 
+    <section id="v4-3-0">
+      <h2>4.3.0 <span class="badge">current release</span> — 2026-09-03</h2>
+      <ul>
+        <li><strong>Fixed a per-call closure allocation — the single largest source of AutoMapperLite's excess allocation versus manual mapping and Mapster.</strong> The method every dispatch path uses to reach a compiled mapping delegate wrote <code>LazyInitializer.EnsureInitialized(ref _compiledMap, () =&gt; MappingPlanCompiler.Compile(this, config))</code> directly in its body. That lambda captures <code>this</code> and <code>config</code>, so C# allocates a new closure object and delegate wrapping it at the call site on <em>every single call</em>, whether or not the factory is ever invoked. This hit every same-name nested single-object property (once per parent object mapped) and the typed <code>Map&lt;TSource,TDestination&gt;</code> overload directly. Fixed by checking the field directly first and only falling through to the lambda-allocating path once, ever, per builder. See <a href="performance.html">Performance</a> for full numbers and methodology:
+          <ul>
+            <li>Simple/Medium/Nested/Deeply-nested object mapping now allocate <em>exactly</em> what Manual mapping does (32&nbsp;B/80&nbsp;B/80&nbsp;B/248&nbsp;B), down from 128&nbsp;B/176&nbsp;B/272&nbsp;B/632&nbsp;B</li>
+            <li>100-item collection: 13.44&nbsp;KB → 4.06&nbsp;KB allocated (was 3.4x Manual's/Mapster's 3.96&nbsp;KB, now within 3%)</li>
+            <li>5,000-item collection: 664.25&nbsp;KB → 195.48&nbsp;KB allocated (was 3.4x Manual's/Mapster's 195.37&nbsp;KB, now within 0.06%)</li>
+            <li>Verified this holds at scale: at 100,000 items, allocation is within 0.007% of Manual's (previously ~3.4x at any size), and time is within 11% of Manual's — actually beating AutoMapper by ~18% at that size</li>
+          </ul>
+        </li>
+        <li><strong>Fixed <code>IMapper.Map&lt;TSource, TDestination&gt;(TSource)</code> (added in 4.2.0) being measurably slower than the untyped overload it was designed to beat.</strong> Each call still went through an uncached <code>IMapperConfig.GetMap&lt;,&gt;()</code> lookup plus the closure allocation above, while the untyped overload's own cached dispatch closure had already eliminated both. Added a dedicated per-<code>Mapper</code>-instance cache mirroring the untyped path's own, so the typed overload now has the identical shape — one dictionary lookup keyed by compile-time <code>Type</code>, then a direct delegate invocation — and is consistently the faster of the two API shapes.</li>
+        <li>Added a regression test guarding a further optimization that was considered and <em>deliberately not made</em>: eagerly resolving a nested property's compiled delegate at the parent's plan-compile time would StackOverflow on self-referential types (e.g. <code>Employee.Manager: Employee</code>) even with fully acyclic data. Documented as a permanent constraint in <code>CLAUDE.md</code>.</li>
+        <li>No public API or behavior changes since 4.2.0 — dispatch-layer allocation/performance work only, verified against the full test suite (120 tests) and the <code>--verify</code> cross-library output-equality harness.</li>
+      </ul>
+    </section>
+
+    <section id="v4-2-0">
+      <h2>4.2.0 — 2026-08-29 <span class="badge badge-warn">deprecated</span></h2>
+      <ul>
+        <li><strong>Dispatch-layer performance redesign.</strong> 4.1.0 compiled each mapping into an expression-tree delegate but still paid avoidable runtime-dispatch costs on top of that: the untyped <code>Map&lt;TDestination&gt;(object)</code> entry point re-resolved the destination config on every single call (two dictionary lookups per map), collection items were dispatched via <code>GetType()</code> plus a dictionary lookup <em>per element</em>, and nested same-name auto-mapped properties routed through that same per-call dispatch despite the nested type pair being known at plan-compile time. 4.2.0 fixes all three — see <a href="performance.html">Performance</a> for full numbers and methodology:
+          <ul>
+            <li>Simple object: 67.6&nbsp;ns → 42.2&nbsp;ns (~38% faster, now <em>faster</em> than AutoMapper's 58.2&nbsp;ns)</li>
+            <li>100-item collection: 6,986.7&nbsp;ns → 2,744.1&nbsp;ns (~61% faster)</li>
+            <li>5,000-item collection: 390.81&nbsp;µs → 156.47&nbsp;µs (~60% faster)</li>
+            <li>Cold start improved further: 281.7&nbsp;µs → 201.6&nbsp;µs, still the fastest of the three libraries compared</li>
+          </ul>
+        </li>
+        <li><strong>Added:</strong> <code>IMapper.Map&lt;TSource, TDestination&gt;(TSource source)</code> — a strongly-typed overload for call sites where the source type is known at compile time; skips <code>source.GetType()</code>, the entry-point cache, and return-value boxing entirely. Additive for callers; technically breaking for anyone implementing <code>IMapper</code> themselves.</li>
+        <li><strong>Disclosed behavior change:</strong> <code>List&lt;T&gt;</code> destination mapping now resolves the item map from the source collection's <em>declared</em> item type, not each element's runtime type — a <code>List&lt;Base&gt;</code> containing <code>Derived</code> instances now maps every element through <code>Base</code>'s registered map instead of dispatching per element (which previously threw for a <code>Derived</code> element unless it had its own separately-registered map).</li>
+        <li>No public API breaking changes for callers since 3.0.3.</li>
+      </ul>
+    </section>
+
+    <section id="v4-1-0">
+      <h2>4.1.0 — 2026-08-29 <span class="badge badge-warn">deprecated</span></h2>
+      <ul>
+        <li><strong>Performance redesign:</strong> each source/destination type pair is now compiled into a cached <code>Func&lt;TSource, TDestination&gt;</code> via <code>System.Linq.Expressions</code> on first use, instead of being interpreted through <code>PropertyInfo.GetValue</code>/<code>SetValue</code>, <code>MethodInfo.Invoke</code>, and <code>Activator.CreateInstance</code> on every call. Measured on this repo's own BenchmarkDotNet suite (full numbers and methodology on <a href="performance.html">Performance</a>):
+          <ul>
+            <li>Simple object: 242.0&nbsp;ns → 67.6&nbsp;ns (~3.6x faster)</li>
+            <li>Nested object: 424.1&nbsp;ns → 137.8&nbsp;ns (~3.1x faster)</li>
+            <li>100-item collection: 26,009.1&nbsp;ns → 6,986.7&nbsp;ns (~3.7x faster)</li>
+            <li>Cold start (first mapping call, including compilation) is now faster than both AutoMapper's and Mapster's own cold start</li>
+          </ul>
+        </li>
+        <li>AutoMapperLite is still slower than AutoMapper and Mapster on warm, repeated auto-mapped calls, especially collections — see <a href="comparison.html">Comparison</a> for the honest breakdown of where each library wins.</li>
+        <li><strong>Disclosed behavior change (not a breaking API change):</strong> exceptions raised during mapping now propagate directly as <code>InvalidOperationException</code> instead of being wrapped in <code>System.Reflection.TargetInvocationException</code> — that wrapping was an implementation detail of the old reflection dispatch, never part of the documented contract.</li>
+        <li><code>ForPath</code> nested-path mapping is unchanged (still interpreted) — profiling showed it wasn't a hot path.</li>
+        <li>No public API breaking changes since 3.0.3.</li>
+      </ul>
+    </section>
+
     <section id="v4-0-2">
-      <h2>4.0.2 <span class="badge">current release</span> — 2026-08-29</h2>
+      <h2>4.0.2 — 2026-08-29 <span class="badge badge-warn">deprecated</span></h2>
       <ul>
         <li>Fixed: updated test tooling (xunit.v3, Microsoft.NET.Test.Sdk 18.9.0) only supports net8.0+ — <code>AutoMapperLite.Tests</code> now targets net8.0/net9.0/net10.0 (the library itself is unaffected and still targets net6.0-net10.0)</li>
         <li>Fixed: a Microsoft Testing Platform v2 change dropped <code>dotnet test</code>'s legacy VSTest bridge on the .NET 10 SDK — a repo-root <code>global.json</code> now opts into native MTP mode</li>
@@ -168,7 +220,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.0.2 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.3.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

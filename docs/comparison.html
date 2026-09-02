@@ -76,7 +76,7 @@
         <thead><tr><th>Capability</th><th>AutoMapperLite</th><th>AutoMapper</th><th>Mapster</th></tr></thead>
         <tbody>
           <tr><td>License</td><td>MIT, free</td><td>Commercial license required above revenue threshold</td><td>MIT, free</td></tr>
-          <tr><td>Runtime mapping strategy</td><td>Reflection + cached metadata</td><td>Compiled expressions</td><td>Compiled expressions / source generators</td></tr>
+          <tr><td>Runtime mapping strategy</td><td>Compiled expressions (cached delegate per type pair)</td><td>Compiled expressions</td><td>Compiled expressions / source generators</td></tr>
           <tr><td>Dependency footprint</td><td>One small package (<code>Microsoft.Extensions.DependencyInjection.Abstractions</code>)</td><td>Larger, more moving parts</td><td>Small</td></tr>
           <tr><td>LINQ <code>IQueryable</code> projection (<code>ProjectTo</code>)</td><td>No</td><td>Yes</td><td>Yes</td></tr>
           <tr><td>Convention-based auto-mapping</td><td>Same-name, same-type properties</td><td>Extensive convention engine</td><td>Extensive convention engine</td></tr>
@@ -85,10 +85,13 @@
           <tr><td>Collection mapping</td><td>Yes, incl. nested <code>List&lt;T&gt;</code> properties</td><td>Yes</td><td>Yes</td></tr>
           <tr><td>Dependency injection integration</td><td>Built in (<code>AddAutoMapperLite</code>)</td><td>Via separate package</td><td>Via separate package</td></tr>
           <tr><td>.NET targets</td><td>net6.0 – net10.0</td><td>Broad, actively maintained</td><td>Broad, actively maintained</td></tr>
-          <tr><td>Mapping a simple object (mean time)</td><td>242.0&nbsp;ns</td><td>72.3&nbsp;ns</td><td>17.8&nbsp;ns</td></tr>
-          <tr><td>Mapping a 100-item collection (mean time)</td><td>26,009.1&nbsp;ns</td><td>1,226.3&nbsp;ns</td><td>785.5&nbsp;ns</td></tr>
+          <tr><td>Mapping a simple object (mean time, generic API)</td><td>29.6&nbsp;ns</td><td>69.7&nbsp;ns</td><td>17.2&nbsp;ns</td></tr>
+          <tr><td>Mapping a simple object (allocated)</td><td>32&nbsp;B</td><td>32&nbsp;B</td><td>32&nbsp;B</td></tr>
+          <tr><td>Mapping a 100-item collection (mean time)</td><td>1,385.5&nbsp;ns</td><td>1,204.8&nbsp;ns</td><td>792.1&nbsp;ns</td></tr>
+          <tr><td>Mapping a 100-item collection (allocated)</td><td>4.06&nbsp;KB</td><td>5.27&nbsp;KB</td><td>3.96&nbsp;KB</td></tr>
+          <tr><td>Cold start (first call, incl. compilation)</td><td>214.8&nbsp;µs</td><td>438.0&nbsp;µs</td><td>445.3&nbsp;µs</td></tr>
         </tbody>
-        <caption>Throughput rows are measured with BenchmarkDotNet — see <a href="performance.html">Performance</a> for the full results, methodology, and every scenario. AutoMapperLite is the slowest of the three here; its value proposition is dependency footprint and simplicity, not raw speed.</caption>
+        <caption>Throughput rows are measured with BenchmarkDotNet — see <a href="performance.html">Performance</a> for the full results, methodology, and every scenario. AutoMapperLite now beats AutoMapper on simple-object mapping and has the fastest cold start of the three; collection-mapping time is now close to AutoMapper's (previously a large gap) and its allocation is within a few percent of Mapster's/manual mapping's at any collection size. Its value proposition remains dependency footprint and simplicity, not raw per-call throughput against Mapster specifically.</caption>
       </table>
       </div>
     </section>
@@ -156,7 +159,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.0.2 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.3.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

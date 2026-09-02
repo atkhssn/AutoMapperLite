@@ -40,7 +40,7 @@
       "name": "What is AutoMapperLite?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "AutoMapperLite is a lightweight, reflection-based object-to-object mapper for .NET. It maps properties between source and destination types (typically entities and DTOs) using fluent CreateMap/ForMember/ForPath profiles."
+        "text": "AutoMapperLite is a lightweight object-to-object mapper for .NET. It maps properties between source and destination types (typically entities and DTOs) using fluent CreateMap/ForMember/ForPath profiles, compiling each mapping into a cached delegate rather than interpreting it via reflection on every call."
       }
     },
     {
@@ -88,7 +88,7 @@
       "name": "How do I install AutoMapperLite?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "dotnet add package AutoMapperLite --version 4.0.2. See Getting Started for the full walkthrough."
+        "text": "dotnet add package AutoMapperLite --version 4.2.0. See Getting Started for the full walkthrough."
       }
     },
     {
@@ -216,7 +216,7 @@
     <section id="faqs">
       <details class="faq-item">
         <summary>What is AutoMapperLite?</summary>
-        <div class="faq-answer">AutoMapperLite is a lightweight, reflection-based object-to-object mapper for .NET. It maps properties between source and destination types (typically entities and DTOs) using fluent <code>CreateMap</code>/<code>ForMember</code>/<code>ForPath</code> profiles.</div>
+        <div class="faq-answer">AutoMapperLite is a lightweight object-to-object mapper for .NET. It maps properties between source and destination types (typically entities and DTOs) using fluent <code>CreateMap</code>/<code>ForMember</code>/<code>ForPath</code> profiles, compiling each mapping into a cached delegate rather than interpreting it via reflection on every call.</div>
       </details>
       <details class="faq-item">
         <summary>What is AutoMapperLite used for?</summary>
@@ -240,7 +240,7 @@
       </details>
       <details class="faq-item">
         <summary>How do I install AutoMapperLite?</summary>
-        <div class="faq-answer"><code>dotnet add package AutoMapperLite --version 4.0.2</code>. See <a href="getting-started.html">Getting Started</a> for the full walkthrough.</div>
+        <div class="faq-answer"><code>dotnet add package AutoMapperLite --version 4.2.0</code>. See <a href="getting-started.html">Getting Started</a> for the full walkthrough.</div>
       </details>
       <details class="faq-item">
         <summary>How do I map an object with AutoMapperLite?</summary>
@@ -328,7 +328,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.0.2 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.3.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

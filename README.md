@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <strong>v4.0.2</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
+  <strong>v4.3.0</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
   <a href="https://automapperlite.atkhssn.info">automapperlite.atkhssn.info</a>
 </p>
 
@@ -17,7 +17,7 @@ Designed to simplify DTO and entity mapping with easy-to-use profiles, support f
 
 Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 
-> **4.0.2 is the current official release.** All prior versions (4.0.1 and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
+> **4.3.0 is the current official release.** All prior versions (4.0.2 and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
 
 📖 Full documentation (Getting Started, API reference, usage guide, performance, FAQ, comparison): **[automapperlite.atkhssn.info](https://automapperlite.atkhssn.info)** once deployed, or open [`docs/index.html`](docs/index.html) locally in a browser.
 
@@ -41,7 +41,7 @@ Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 Install the NuGet package in your project:
 
 ```bash
-dotnet add package AutoMapperLite --version 4.0.2
+dotnet add package AutoMapperLite --version 4.3.0
 ```
 
 ### 1. Register AutoMapperLite in your DI container
@@ -217,7 +217,7 @@ subject to the conditions of the MIT License.
 
 **Is it thread-safe?** Yes — configuration (`CreateMap`) and mapping (`Map`) can both be used concurrently; see the concurrency tests in `AutoMapperLite.Tests`.
 
-**How does it compare to AutoMapper or Mapster?** AutoMapperLite is intentionally smaller in scope — no LINQ projection support, no runtime IL/expression compilation, just `CreateMap`/`ForMember`/`ForPath` and reflection-based mapping with cached metadata. Choose it when you want a minimal-dependency mapper for straightforward DTO/entity mapping; choose AutoMapper or Mapster for large projects needing LINQ `ProjectTo`, value converters, or maximum raw throughput.
+**How does it compare to AutoMapper or Mapster?** AutoMapperLite is intentionally smaller in scope — no LINQ projection support, no convention/coercion engine, just `CreateMap`/`ForMember`/`ForPath` compiled into cached delegates per type pair. Choose it when you want a minimal-dependency mapper for straightforward DTO/entity mapping; choose AutoMapper or Mapster for large projects needing LINQ `ProjectTo`, value converters, or maximum raw throughput — see the [real, measured comparison](https://automapperlite.atkhssn.info/performance.html).
 
 More questions answered in the [full FAQ](https://automapperlite.atkhssn.info/faq.html).
 

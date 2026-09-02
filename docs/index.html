@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AutoMapperLite — Lightweight .NET Object Mapper</title>
-<meta name="description" content="AutoMapperLite is a lightweight, reflection-based object mapper for .NET 6-10. MIT licensed, dependency-minimal alternative to AutoMapper for DTO mapping.">
+<meta name="description" content="AutoMapperLite is a lightweight .NET object mapper that compiles each mapping into a cached delegate. MIT licensed alternative to AutoMapper.">
 <link rel="canonical" href="https://automapperlite.atkhssn.info/">
 <meta name="robots" content="index, follow">
 
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AutoMapperLite">
 <meta property="og:title" content="AutoMapperLite — Lightweight .NET Object Mapper">
-<meta property="og:description" content="A lightweight, reflection-based object-to-object mapper for .NET 6-10. MIT licensed.">
+<meta property="og:description" content="A lightweight, expression-compiled object mapper for .NET 6-10. MIT licensed.">
 <meta property="og:url" content="https://automapperlite.atkhssn.info/">
 <meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -26,7 +26,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AutoMapperLite — Lightweight .NET Object Mapper">
-<meta name="twitter:description" content="A lightweight, reflection-based object-to-object mapper for .NET 6-10. MIT licensed.">
+<meta name="twitter:description" content="A lightweight, expression-compiled object mapper for .NET 6-10. MIT licensed.">
 <meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
 
 <link rel="stylesheet" href="assets/styles.css">
@@ -38,13 +38,13 @@
   "name": "AutoMapperLite",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": ".NET 6.0, .NET 7.0, .NET 8.0, .NET 9.0, .NET 10.0",
-  "softwareVersion": "4.0.2",
+  "softwareVersion": "4.2.0",
   "url": "https://automapperlite.atkhssn.info",
   "downloadUrl": "https://www.nuget.org/packages/AutoMapperLite",
   "license": "https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE",
   "codeRepository": "https://github.com/atkhssn/AutoMapperLite",
   "isAccessibleForFree": true,
-  "description": "A lightweight, reflection-based object-to-object mapper for .NET.",
+  "description": "A lightweight object-to-object mapper for .NET that compiles each mapping into a cached delegate.",
   "author": {
     "@type": "Person",
     "name": "Atik Hassan",
@@ -91,14 +91,14 @@
         AutoMapper installation.
       </p>
       <div class="badges">
-        <span class="badge">v4.0.2 — current release</span>
+        <span class="badge">v4.2.0 — current release</span>
         <span class="badge">MIT licensed</span>
         <span class="badge">net6.0 – net10.0</span>
         <span class="badge">Thread-safe</span>
       </div>
       <p style="color: var(--fg-muted); font-size: 0.88rem;">
         Created and maintained by <a href="https://atkhssn.info">Atik Hassan</a>.
-        Versions prior to 4.0.2 are deprecated — see the <a href="changelog.html">changelog</a>.
+        Versions prior to 4.2.0 are deprecated — see the <a href="changelog.html">changelog</a>.
       </p>
       <div class="cta-row">
         <a class="btn btn-primary" href="#quick-start">Quick Start</a>
@@ -140,7 +140,7 @@
     <section id="installation">
       <h2>Installation</h2>
       <p>Install the NuGet package in your project:</p>
-      <pre><code>dotnet add package AutoMapperLite --version 4.0.2</code></pre>
+      <pre><code>dotnet add package AutoMapperLite --version 4.2.0</code></pre>
       <p>Targets <code>net6.0</code>, <code>net7.0</code>, <code>net8.0</code>, <code>net9.0</code>, and <code>net10.0</code>.</p>
     </section>
 
@@ -223,7 +223,7 @@ public class MyMappingProfile : Profile
       </details>
       <details class="faq-item">
         <summary>How does AutoMapperLite compare to AutoMapper or Mapster?</summary>
-        <div class="faq-answer">AutoMapperLite trades some flexibility (no LINQ projection, no runtime IL/expression compilation) for a much smaller footprint. See the full <a href="comparison.html">comparison</a>.</div>
+        <div class="faq-answer">AutoMapperLite trades some flexibility (no LINQ projection, no convention/coercion engine) for a much smaller footprint. Like AutoMapper and Mapster, it compiles each configured type pair into a cached delegate rather than mapping via raw reflection — but it's still slower than both on warm, repeated calls, especially collections. See the full <a href="comparison.html">comparison</a> and <a href="performance.html">performance</a> pages.</div>
       </details>
       <p><a href="faq.html">See the full FAQ →</a></p>
     </section>
@@ -301,7 +301,7 @@ public class MyMappingProfile : Profile
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.0.2 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.3.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         © 2025–2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

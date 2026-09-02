@@ -7,8 +7,8 @@ security fixes.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 3.0.x   | :white_check_mark: |
-| < 3.0   | :x:                |
+| 4.2.x   | :white_check_mark: |
+| < 4.2   | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -25,8 +25,9 @@ noted in the release notes.
 
 ## Scope
 
-AutoMapperLite is a reflection-based object mapping library. Reports involving
-denial-of-service through pathological mapping configurations, reflection
-misuse, or unintended code execution via mapping profiles are in scope.
-General usage questions are not security reports — please use GitHub issues
-for those.
+AutoMapperLite is an object mapping library that uses reflection and
+`System.Linq.Expressions`-based compilation internally. Reports involving
+denial-of-service through pathological mapping configurations, reflection or
+expression-compilation misuse, or unintended code execution via mapping
+profiles are in scope. General usage questions are not security reports —
+please use GitHub issues for those.

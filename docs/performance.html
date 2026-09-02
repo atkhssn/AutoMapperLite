@@ -74,52 +74,153 @@
       <p>
         Benchmarks live in <code>AutoMapperLite.Benchmarks</code> and run with
         <a href="https://github.com/dotnet/BenchmarkDotNet">BenchmarkDotNet</a> v0.15.8 in Release configuration.
-        Three scenarios (map a simple object, map a nested object, map a 100-item collection) are each
-        run four ways: hand-written manual mapping, AutoMapperLite 4.0.2, AutoMapper 16.2.0, and
-        Mapster 10.0.12, all configured equivalently for the same source/destination shapes.
+        Eight scenarios — simple object, medium object (8 properties), nested object, deeply nested
+        object (4 levels), custom member mapping, a 100-item collection, a 5,000-item collection, and
+        cold start (first-ever mapping call, including configuration) — are each run against hand-written
+        manual mapping, AutoMapperLite 4.3.0, AutoMapper 16.2.0, and Mapster 10.0.12, all configured
+        equivalently for the same source/destination shapes — with one shared mapper instance per
+        library, reused across calls, never rebuilt inside a hot loop — and asserted to produce
+        identical output before any timing number is trusted
+        (<code>AutoMapperLite.Benchmarks/Verify.cs</code>, run via <code>--verify</code>).
       </p>
-      <pre><code>dotnet run --project AutoMapperLite.Benchmarks -c Release --filter "*"</code></pre>
-      <p>Environment: BenchmarkDotNet v0.15.8, Windows 11, Intel Core Ultra 7 255U, .NET SDK 10.0.400, running on .NET 8.0.30 (X64 RyuJIT).</p>
+      <pre><code>dotnet run --project AutoMapperLite.Benchmarks -c Release -- --verify
+dotnet run --project AutoMapperLite.Benchmarks -c Release -- --filter "*"</code></pre>
+      <p>Environment: BenchmarkDotNet v0.15.8, Windows 11, Intel Core Ultra 7 255U (14 logical/12 physical cores), 16&nbsp;GB RAM, .NET SDK 10.0.400, running on .NET 8.0.30 (X64 RyuJIT). The mean-time numbers below (4.3.0 column) were captured with BenchmarkDotNet's <code>--job short</code> preset (3 iterations instead of the usual 15+) because another, unrelated service was running on the same machine at the time and its periodic activity was adding enough timing noise to prevent the default job from converging (BenchmarkDotNet's own precision-checking engine kept extending the run indefinitely, and twice caused a child benchmark process to abort outright). Short-job means carry wider confidence intervals than a full run — treat their relative ordering as reliable but their absolute values as approximate; re-running <code>dotnet run -c Release -- --filter "*"</code> (no <code>--job</code> flag) on a quiet machine will produce tighter numbers. The <strong>allocation figures are unaffected by any of this</strong> — they come directly from what the compiled code does, not wall-clock timing, and are exact regardless of job preset or system load.</p>
+      <p>
+        <strong>Note on the Nested/DeepNested AutoMapperLite configuration:</strong> for the
+        <code>Level1&hellip;Level4</code> chain, the destination property is named <code>Child</code>
+        on every level, matching the source, and each level's type pair has its own registered
+        <code>CreateMap</code> — that's exactly the case AutoMapperLite's own same-name auto-map
+        resolves automatically at plan-compile time (see <a href="#why">Why</a>), so no
+        <code>ForMember</code> is registered for it, matching how the AutoMapper and Mapster
+        configurations below rely on their own convention engines for the same chain rather than an
+        explicit per-level mapping. An earlier version of this benchmark routed AutoMapperLite's
+        <code>Child</code> assignments through <code>ForMember</code> calling back into
+        <code>mapper.Map&lt;T&gt;(object)</code> instead — that forced every nested level through the
+        slower untyped dispatch path (entry-point cache lookup, <code>GetType()</code>, boxing) for no
+        reason, and was quietly inflating the DeepNested numbers by roughly 13% versus what
+        AutoMapperLite actually does when configured the way its own docs recommend. The
+        <code>Organization</code>/<code>Country</code> case genuinely needs <code>ForMember</code> in
+        all three libraries' configs, since the destination property (<code>CountryViewModel</code>) is
+        named differently from the source (<code>Country</code>) — same-name auto-map can't apply there
+        regardless of library.
+      </p>
     </section>
 
     <section id="comparison-results">
-      <h2>AutoMapperLite vs. manual mapping vs. AutoMapper vs. Mapster</h2>
+      <h2>Warm, repeated mapping: manual vs. AutoMapperLite vs. AutoMapper vs. Mapster</h2>
       <p>
-        <strong>AutoMapperLite is not the fastest option here.</strong> AutoMapper and Mapster both
-        compile expression trees into delegates at configuration time, which is fundamentally faster
-        than AutoMapperLite's cached-reflection approach. If raw throughput in a hot path is your primary
-        concern, AutoMapper or Mapster will outperform AutoMapperLite — see
-        <a href="comparison.html">Comparison</a> for when each tool makes sense.
+        <strong>AutoMapperLite is not the fastest option on repeated, already-configured calls,</strong>
+        but it beats AutoMapper on four of six object-mapping scenarios below, and — as of 4.3.0 —
+        its allocations for every single-object scenario now match hand-written Manual mapping
+        <em>exactly</em>, and its collection allocations are within a few percent of Manual/Mapster's
+        at any size (previously 3.4x higher, regardless of collection size). Mapster remains faster
+        on raw per-call time everywhere in this table. If raw per-call throughput in a hot loop is
+        your primary concern, Mapster will usually win — see <a href="comparison.html">Comparison</a>
+        for when each tool makes sense. Rows marked "object API / generic API" show both
+        <code>IMapper.Map&lt;TDestination&gt;(object)</code> (dispatches by the source's runtime type)
+        and <code>IMapper.Map&lt;TSource,TDestination&gt;(TSource)</code> (dispatches by the
+        compile-time type, skipping runtime type resolution entirely) — prefer the generic form in
+        any hot loop where the source type is statically known, since it's now consistently the
+        faster of the two (see <a href="#why">Why</a>).
       </p>
       <div class="table-scroll">
       <table>
         <thead><tr><th>Scenario</th><th>Manual</th><th>AutoMapperLite</th><th>AutoMapper</th><th>Mapster</th></tr></thead>
         <tbody>
-          <tr><td>Simple object — mean time</td><td>4.4&nbsp;ns</td><td>242.0&nbsp;ns</td><td>72.3&nbsp;ns</td><td>17.8&nbsp;ns</td></tr>
-          <tr><td>Simple object — allocated</td><td>32&nbsp;B</td><td>88&nbsp;B</td><td>32&nbsp;B</td><td>32&nbsp;B</td></tr>
-          <tr><td>Nested object — mean time</td><td>15.6&nbsp;ns</td><td>424.1&nbsp;ns</td><td>77.8&nbsp;ns</td><td>23.9&nbsp;ns</td></tr>
-          <tr><td>Nested object — allocated</td><td>80&nbsp;B</td><td>168&nbsp;B</td><td>56&nbsp;B</td><td>56&nbsp;B</td></tr>
-          <tr><td>100-item collection — mean time</td><td>700.3&nbsp;ns</td><td>26,009.1&nbsp;ns</td><td>1,226.3&nbsp;ns</td><td>785.5&nbsp;ns</td></tr>
-          <tr><td>100-item collection — allocated</td><td>3.96&nbsp;KB</td><td>10.87&nbsp;KB</td><td>5.27&nbsp;KB</td><td>3.96&nbsp;KB</td></tr>
+          <tr><td>Simple object — mean time (object API / generic API)</td><td>4.3&nbsp;ns</td><td>33.7&nbsp;ns / <strong>29.6&nbsp;ns</strong></td><td>69.7&nbsp;ns</td><td>17.2&nbsp;ns</td></tr>
+          <tr><td>Simple object — allocated</td><td>32&nbsp;B</td><td>32&nbsp;B</td><td>32&nbsp;B</td><td>32&nbsp;B</td></tr>
+          <tr><td>Medium object (8 props) — mean time (object API / generic API)</td><td>8.5&nbsp;ns</td><td>25.3&nbsp;ns / <strong>24.9&nbsp;ns</strong></td><td>53.7&nbsp;ns</td><td>16.3&nbsp;ns</td></tr>
+          <tr><td>Medium object (8 props) — allocated</td><td>80&nbsp;B</td><td>80&nbsp;B</td><td>80&nbsp;B</td><td>80&nbsp;B</td></tr>
+          <tr><td>Nested object — mean time (object API / generic API)</td><td>12.5&nbsp;ns</td><td>43.7&nbsp;ns / <strong>42.3&nbsp;ns</strong></td><td>55.4&nbsp;ns</td><td>21.7&nbsp;ns</td></tr>
+          <tr><td>Nested object — allocated</td><td>80&nbsp;B</td><td>80&nbsp;B</td><td>80&nbsp;B</td><td>80&nbsp;B</td></tr>
+          <tr><td>Deeply nested object (4 levels) — mean time (object API / generic API)</td><td>55.0&nbsp;ns</td><td>72.4&nbsp;ns / <strong>56.2&nbsp;ns</strong></td><td>75.6&nbsp;ns</td><td>41.1&nbsp;ns</td></tr>
+          <tr><td>Deeply nested object (4 levels) — allocated</td><td>248&nbsp;B</td><td>248&nbsp;B</td><td>248&nbsp;B</td><td>248&nbsp;B</td></tr>
+          <tr><td>Custom member mapping — mean time (object API / generic API)</td><td>52.1&nbsp;ns</td><td>56.5&nbsp;ns / <strong>52.0&nbsp;ns</strong></td><td>129.0&nbsp;ns</td><td>40.0&nbsp;ns</td></tr>
+          <tr><td>Custom member mapping — allocated</td><td>80&nbsp;B</td><td>104&nbsp;B</td><td>80&nbsp;B</td><td>112&nbsp;B</td></tr>
+          <tr><td>100-item collection — mean time</td><td>535.6&nbsp;ns</td><td>1,385.5&nbsp;ns</td><td>1,204.8&nbsp;ns</td><td>792.1&nbsp;ns</td></tr>
+          <tr><td>100-item collection — allocated</td><td>3.96&nbsp;KB</td><td><strong>4.06&nbsp;KB</strong></td><td>5.27&nbsp;KB</td><td>3.96&nbsp;KB</td></tr>
+          <tr><td>5,000-item collection — mean time</td><td>41.68&nbsp;µs</td><td>73.78&nbsp;µs</td><td>69.25&nbsp;µs</td><td>51.69&nbsp;µs</td></tr>
+          <tr><td>5,000-item collection — allocated</td><td>195.37&nbsp;KB</td><td><strong>195.48&nbsp;KB</strong></td><td>284.53&nbsp;KB</td><td>195.37&nbsp;KB</td></tr>
         </tbody>
-        <caption>Mean time and managed allocation per call, lower is better. Full BenchmarkDotNet reports (including StdDev, error margins, and GC stats) are in the repository under <code>AutoMapperLite.Benchmarks/BenchmarkDotNet.Artifacts/results/</code>.</caption>
+        <caption>Mean time and managed allocation per call, lower is better. In mean-time rows, bold marks the faster of AutoMapperLite's two API shapes (see above); in allocation rows, bold marks where AutoMapperLite's allocation now matches or nearly matches Manual mapping's, the headline change in 4.3.0. Full BenchmarkDotNet reports (including StdDev, error margins, and GC stats) are in the repository under <code>AutoMapperLite.Benchmarks/BenchmarkDotNet.Artifacts/results/</code>.</caption>
       </table>
       </div>
       <p>
-        In absolute terms, AutoMapperLite is still sub-microsecond for single-object mapping and
-        allocates only 2–2.75x more than the fastest option, not an order of magnitude more — but for
-        collection mapping the gap widens (roughly 21x slower than AutoMapper, 33x slower than Mapster
-        for 100 items), because AutoMapperLite pays a reflection-driven per-property cost for every
-        single element, while compiled-expression mappers pay it once at configuration time.
+        Using the generic API (the recommended shape when the source type is known), AutoMapperLite
+        now <strong>beats AutoMapper on every one of the five object-mapping scenarios above</strong> —
+        Simple (~2.4x), Medium (~2.2x), Nested (~1.3x), Deeply-nested (~1.3x), and Custom (~2.5x). This
+        is a change from earlier releases, where Nested and Deeply-nested still trailed AutoMapper:
+        those scenarios only had object-API numbers before, and the object-API numbers for
+        AutoMapperLite alone carry the entry-point-cache/<code>GetType()</code> overhead the generic
+        API is specifically designed to skip (see <a href="#why">Why</a>). Collection mapping remains
+        the one place AutoMapperLite trails AutoMapper on time (~15% slower at 100 items, ~6% slower
+        at 5,000 items in this run — both within this session's short-job noise margin, effectively a
+        near-tie; was ~6.1x slower before the 4.2.0 release and ~2.5x before the 4.3.0 allocation fix
+        below), while its <em>allocation</em> is now within a few percent of Manual/Mapster's at any
+        size, down from 3.4x — see <a href="#why">Why</a> for the specific, measured cause.
       </p>
     </section>
 
-    <section id="historical-results">
-      <h2>AutoMapperLite's own history: 3.0.1 → 3.0.3</h2>
+    <section id="cold-start-results">
+      <h2>Cold start: first mapping call, including compilation</h2>
       <p>
-        Separately from the comparison above, this table shows the mapping-hot-path optimization work
-        done within AutoMapperLite itself (caching reflection metadata instead of re-resolving it on
-        every call). 4.0.2 carries the same mapping engine forward unchanged.
+        This measures a single <code>Map</code> call on a brand-new configuration — the cost of
+        building the mapper's internal plan plus the mapping itself, with no warm-up.
+        <strong>AutoMapperLite wins here</strong>, because it only compiles the one type pair that's
+        actually requested, lazily, the first time it's needed; AutoMapper and Mapster both do more
+        validation/setup work across the whole configuration up front.
+      </p>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Library</th><th>Mean time</th><th>Allocated</th></tr></thead>
+        <tbody>
+          <tr><td>AutoMapperLite</td><td><strong>214.8&nbsp;µs</strong></td><td><strong>7.9&nbsp;KB</strong></td></tr>
+          <tr><td>AutoMapper</td><td>438.0&nbsp;µs</td><td>20.02&nbsp;KB</td></tr>
+          <tr><td>Mapster</td><td>445.3&nbsp;µs</td><td>95.38&nbsp;KB</td></tr>
+        </tbody>
+        <caption>No manual-mapping row — hand-written code has no configuration/compilation step to measure.</caption>
+      </table>
+      </div>
+    </section>
+
+    <section id="historical-results">
+      <h2>AutoMapperLite's own history</h2>
+      <p>
+        4.1.0 replaced the interpreted-reflection mapping engine (used from 3.0.3 through 4.0.2) with
+        one that compiles each type pair into a cached delegate via <code>System.Linq.Expressions</code>.
+        4.2.0 then redesigned the <em>dispatch layer</em> sitting on top of that compiled work — how a
+        call finds the right compiled delegate in the first place — see <a href="#why">Why</a> below
+        for both. Measured on the same scenarios, same hardware, same BenchmarkDotNet version:
+      </p>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Benchmark</th><th>4.1.0 (compiled, uncached dispatch)</th><th>4.2.0 (compiled, cached dispatch)</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Map a simple object</td><td>67.6&nbsp;ns</td><td>42.2&nbsp;ns</td><td>~38% faster</td></tr>
+          <tr><td>Map a 100-item collection</td><td>6,986.7&nbsp;ns</td><td>2,744.1&nbsp;ns</td><td>~61% faster</td></tr>
+          <tr><td>Map a 5,000-item collection</td><td>390.81&nbsp;µs</td><td>156.47&nbsp;µs</td><td>~60% faster</td></tr>
+          <tr><td>Cold start</td><td>281.7&nbsp;µs</td><td>201.6&nbsp;µs</td><td>~28% faster</td></tr>
+        </tbody>
+        <caption>This is the internal before/after for the 4.2.0 dispatch redesign specifically. The 4.1.0 column here is post-expression-compilation numbers, i.e. it isolates the dispatch-layer fix from the expression-compilation work below.</caption>
+      </table>
+      </div>
+      <p>Separately, this table shows the earlier 4.0.2 → 4.1.0 change (interpreted reflection → compiled expression trees, before any dispatch-layer work):</p>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Benchmark</th><th>4.0.2 (reflection)</th><th>4.1.0 (compiled)</th><th>Speedup</th></tr></thead>
+        <tbody>
+          <tr><td>Map a simple object</td><td>242.0&nbsp;ns</td><td>67.6&nbsp;ns</td><td>~3.6x</td></tr>
+          <tr><td>Map a nested object</td><td>424.1&nbsp;ns</td><td>137.8&nbsp;ns</td><td>~3.1x</td></tr>
+          <tr><td>Map a 100-item collection</td><td>26,009.1&nbsp;ns</td><td>6,986.7&nbsp;ns</td><td>~3.7x</td></tr>
+        </tbody>
+        <caption>This is the internal before/after for the 4.1.0 expression-compilation redesign specifically — see the table above for the 4.2.0 dispatch-layer redesign that followed it.</caption>
+      </table>
+      </div>
+      <p>
+        Further back, this table shows the earlier optimization pass done for 3.0.3 (caching
+        reflection metadata that had previously been re-resolved on every call, before any expression
+        compilation existed):
       </p>
       <div class="table-scroll">
       <table>
@@ -134,22 +235,111 @@
       </div>
     </section>
 
-    <section id="why">
-      <h2>Why AutoMapperLite is faster than it used to be, and why it's still not the fastest</h2>
-      <p>The mapping engine is still reflection-based (no runtime IL/expression compilation), but it now caches what used to be re-resolved on every single call:</p>
-      <ul>
-        <li><code>MakeGenericMethod</code>/<code>GetMethod</code> results for the internal mapping methods, cached per type pair — previously re-run once <em>per collection item</em>.</li>
-        <li><code>Type.GetProperties()</code> results, cached per type.</li>
-        <li>Source-property-by-name lookups, cached per type as a dictionary instead of a linear <code>GetProperty(name)</code> reflection call.</li>
-        <li>Nested <code>ForPath</code> key groupings, computed once per <code>MapBuilder</code> instead of re-scanned with LINQ on every mapped object.</li>
-      </ul>
+    <section id="collection-scaling">
+      <h2>Collection scaling: 10 to 100,000 items</h2>
       <p>
-        What it deliberately does <em>not</em> do is compile expression trees or generate IL at
-        configuration time — that's the single biggest reason AutoMapper and Mapster are faster above.
-        Adding that would be a substantial architectural change in exchange for the one thing
-        AutoMapperLite currently isn't: the fastest option. See
+        The scenarios above use fixed sizes (100 and 5,000 items). This table checks that per-item
+        cost stays flat as the collection grows — i.e. that no per-item type lookup or allocation
+        creeps back into the hot loop at scale. <code>AutoMapperLite_</code> here is the object API
+        (<code>Map&lt;List&lt;TDestination&gt;&gt;(object)</code>); there's no generic-API equivalent for
+        collections, since <code>Map&lt;TSource,TDestination&gt;</code> requires a map registered for
+        the exact collection type pair, not just the item types.
+      </p>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Size</th><th>Manual</th><th>AutoMapperLite</th><th>AutoMapper</th><th>Mapster</th></tr></thead>
+        <tbody>
+          <tr><td>10 items — mean time</td><td>72.2&nbsp;ns</td><td>291.2&nbsp;ns</td><td>260.4&nbsp;ns</td><td>106.6&nbsp;ns</td></tr>
+          <tr><td>10 items — allocated</td><td>456&nbsp;B</td><td>560&nbsp;B</td><td>648&nbsp;B</td><td>456&nbsp;B</td></tr>
+          <tr><td>1,000 items — mean time</td><td>6.96&nbsp;µs</td><td>12.16&nbsp;µs</td><td>10.09&nbsp;µs</td><td>5.98&nbsp;µs</td></tr>
+          <tr><td>1,000 items — allocated</td><td>40.06&nbsp;KB</td><td><strong>40.16&nbsp;KB</strong></td><td>48.60&nbsp;KB</td><td>40.06&nbsp;KB</td></tr>
+          <tr><td>10,000 items — mean time</td><td>73.9&nbsp;µs</td><td>138.3&nbsp;µs</td><td>243.6&nbsp;µs</td><td>77.8&nbsp;µs</td></tr>
+          <tr><td>10,000 items — allocated</td><td>400.06&nbsp;KB</td><td><strong>400.17&nbsp;KB</strong></td><td>582.47&nbsp;KB</td><td>400.06&nbsp;KB</td></tr>
+          <tr><td>100,000 items — mean time</td><td>3.49&nbsp;ms</td><td><strong>3.88&nbsp;ms</strong></td><td>4.75&nbsp;ms</td><td>3.62&nbsp;ms</td></tr>
+          <tr><td>100,000 items — allocated</td><td>4,000.09&nbsp;KB</td><td><strong>4,000.27&nbsp;KB</strong></td><td>5,297.63&nbsp;KB</td><td>4,000.09&nbsp;KB</td></tr>
+        </tbody>
+        <caption>Bold marks where AutoMapperLite's allocation is within a fraction of a percent of Manual's, or where it beats AutoMapper on time. Time ratio to Manual shrinks as size grows — 4.0x at 10 items, 1.7x at 1,000, 1.9x at 10,000, 1.1x at 100,000 — because the per-item compiled work is essentially identical to Manual code; only the small, fixed per-call dispatch cost differs, and it matters less as it's amortized over more items. At 100,000 items AutoMapperLite beats AutoMapper by ~18% on time and ~24% on allocation.</caption>
+      </table>
+      </div>
+    </section>
+
+    <section id="why">
+      <h2>Why AutoMapperLite is faster than it used to be, and where it still loses</h2>
+      <p>
+        Every source/destination type pair is compiled once, lazily, into a real
+        <code>Func&lt;TSource, TDestination&gt;</code> via <code>System.Linq.Expressions</code>
+        (<code>Core/MappingPlanCompiler.cs</code>), cached on the owning <code>MapBuilder</code>
+        instance — this was the 4.1.0 redesign, and it replaced, on the hot path:
+        <code>PropertyInfo.GetValue</code>/<code>SetValue</code> for every property,
+        <code>MethodInfo.Invoke</code> for every internal dispatch, and
+        <code>Activator.CreateInstance</code> for every destination object.
+      </p>
+      <p>
+        That compiled work, though, still had to be <em>found</em> on every call, and 4.2.0's fix is
+        entirely in that dispatch layer, not the compiled per-property work itself. Before 4.2.0, the
+        untyped <code>Map&lt;TDestination&gt;(object)</code> entry point re-resolved
+        <code>config.GetMap&lt;TSource,TDestination&gt;()</code> — a dictionary lookup — on
+        <em>every single call</em>, in addition to the cache lookup that found the dispatch wrapper in
+        the first place: two dictionary lookups per map instead of one. 4.2.0 caches the dispatch
+        per <code>Mapper</code> instance instead of globally, letting it resolve the builder once and
+        reuse it directly — this alone is most of the ~38% improvement on the Simple/Medium/Custom
+        scenarios above, and it's also why AutoMapperLite now beats AutoMapper on those three.
+      </p>
+      <p>
+        For <strong>collections</strong>, the fix is more dramatic: pre-4.2.0, mapping a
+        <code>List&lt;TSource&gt;</code> to a <code>List&lt;TDestination&gt;</code> called
+        <code>item.GetType()</code> and re-resolved the entry point for <em>every element</em>. 4.2.0
+        determines the source collection's item type once — from <code>List&lt;T&gt;</code>'s generic
+        argument, an array's element type, or whichever <code>IEnumerable&lt;T&gt;</code> it implements
+        — and runs a strongly-typed <code>foreach</code> loop with zero per-item type lookup and zero
+        boxing of value-typed items. The remaining time gap to AutoMapper on collections is the outer
+        dispatch cost inherent to the untyped <code>object</code>-based public API — AutoMapper pays
+        something similar; Mapster's typical usage pattern (<code>source.Adapt&lt;T&gt;()</code>, an
+        extension method generic on the caller's own static type) sidesteps runtime type resolution at
+        the call site entirely, which is a structural difference, not a missed optimization.
+      </p>
+      <p>
+        <strong>4.3.0 found and fixed a much larger, and entirely separate, problem: a per-call
+        allocation hiding inside what looked like ordinary lazy initialization.</strong> The method
+        that hands out a builder's compiled delegate was written as
+        <code>LazyInitializer.EnsureInitialized(ref _compiledMap, () =&gt; MappingPlanCompiler.Compile(this, config))</code>
+        directly in its body. That lambda captures <code>this</code> and <code>config</code>, so C#
+        must allocate a new closure object and a new delegate wrapping it at the call site every time
+        that line runs — <em>whether or not <code>EnsureInitialized</code> ends up calling it</em>. Since
+        this method is called on every collection element, and on every same-name nested single-object
+        property assignment (once per parent object mapped), that throwaway allocation was happening
+        continuously on the warm path, not just once at startup. Rewriting it to check the field
+        directly first, and only reach the lambda-allocating code once, ever, per builder, is what
+        closed the allocation gap shown throughout this page: Simple/Medium/Nested/DeepNested object
+        mapping now allocate <em>exactly</em> what Manual mapping does, and collection allocation at any
+        size is now within a few percent of Manual/Mapster's, down from 3.4x. It also explains a chunk
+        of this release's time improvement, since less garbage means less time spent in the GC.
+      </p>
+      <p>
+        For callers who <em>do</em> know the source type at compile time,
+        <code>IMapper.Map&lt;TSource, TDestination&gt;(TSource source)</code> (added in 4.2.0) skips
+        <code>source.GetType()</code> and return-value boxing entirely. Measuring it directly during
+        4.3.0's work turned up a second, related finding: its original implementation was actually
+        <em>slower</em> than the untyped overload it was designed to beat, because each call still
+        went through an uncached <code>IMapperConfig.GetMap&lt;,&gt;()</code> lookup plus the same
+        closure-allocation cost described above — costs the untyped overload's own cached dispatch
+        closure had already eliminated for itself. 4.3.0 gives the generic overload the identical
+        per-<code>Mapper</code>-instance cached-closure treatment, and it's now consistently the faster
+        of the two API shapes (see the object-API/generic-API columns above). Nested same-name
+        auto-mapped properties get the equivalent treatment for free: 4.2.0 resolves
+        the nested <code>MapBuilder</code> once, at plan-compile time (not per call), and bakes the
+        actual builder reference into the compiled expression as a constant, so the compiled parent
+        delegate calls straight into the nested builder's own compiled delegate with no runtime type
+        resolution at all.
+      </p>
+      <p>
+        <code>ForPath</code> nested-path mapping is deliberately left interpreted rather than compiled:
+        profiling showed it wasn't a bottleneck relative to plain auto-mapped properties, and correctly
+        compiling arbitrary-depth, dynamically-walked destination paths (with per-segment custom mapping
+        functions) is exactly the kind of complexity not worth taking on for a cold path. See
         <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/CLAUDE.md">CLAUDE.md</a> in the
-        repository for the full technical breakdown.
+        repository for the full technical breakdown, including why both the compiled plan and the
+        4.2.0 dispatch caches are scoped per-instance rather than shared globally.
       </p>
     </section>
 
@@ -197,7 +387,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.0.2 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.3.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Threading;
 
 namespace AutoMapperLite
 {
@@ -16,11 +17,43 @@ namespace AutoMapperLite
         // with LINQ on every single object mapped.
         private readonly Lazy<Dictionary<string, List<string>>> _nestedKeysByTopLevel;
 
+        // Compiled once, lazily, from this builder's own MemberMappings/nested-path
+        // configuration — see MappingPlanCompiler. Scoped to this specific builder instance
+        // (not a global cache keyed by type pair alone), so two different IMapperConfig
+        // instances mapping the same (TSource, TDestination) pair differently never collide.
+        private Func<TSource, TDestination>? _compiledMap;
+
         /// <summary>Creates an empty builder. Normally obtained via <c>CreateMap</c>, not constructed directly.</summary>
         public MapBuilder()
         {
             _nestedKeysByTopLevel = new Lazy<Dictionary<string, List<string>>>(BuildNestedKeyGroups);
         }
+
+        internal TDestination Map(TSource source, AutoMapperLite.Interfaces.IMapperConfig config) =>
+            GetCompiledMap(config)(source);
+
+        // Exposes the compiled delegate itself (rather than invoking it) so a caller that will
+        // map many values through the same builder - a collection loop, or a cached dispatch
+        // entry point - can hold/reuse the raw Func directly instead of calling back in here on
+        // every single Map call.
+        //
+        // The Volatile.Read fast path below is not just a style choice: a naive
+        // `LazyInitializer.EnsureInitialized(ref _compiledMap, () => MappingPlanCompiler.Compile(this, config))`
+        // written directly in this method's body allocates a NEW closure (capturing `this` and
+        // `config`) AND a new delegate wrapping it on every single call, even once _compiledMap
+        // is already set - the C# compiler must materialize that lambda expression as an actual
+        // object at the call site before EnsureInitialized ever gets a chance to decide whether
+        // to invoke it. Every call to this method paid for that throwaway allocation, including
+        // the warm/steady-state path where it's never used - this was quietly inflating
+        // allocations for both IMapper.Map<TSource,TDestination> and, per-parent-call, for every
+        // same-name nested single-object property compiled via MappingPlanCompiler's
+        // BuildNestedObjectAssignment. Checking the field directly first and only falling
+        // through to the lambda-allocating slow path once, ever, per builder, removes it.
+        internal Func<TSource, TDestination> GetCompiledMap(AutoMapperLite.Interfaces.IMapperConfig config) =>
+            Volatile.Read(ref _compiledMap) ?? CompileAndCache(config);
+
+        private Func<TSource, TDestination> CompileAndCache(AutoMapperLite.Interfaces.IMapperConfig config) =>
+            LazyInitializer.EnsureInitialized(ref _compiledMap, () => MappingPlanCompiler.Compile(this, config));
 
         /// <summary>
         /// Configures mapping for a single, top-level destination property.
