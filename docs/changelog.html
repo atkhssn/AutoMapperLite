@@ -66,7 +66,7 @@
 
     <section class="hero">
       <h1>Changelog</h1>
-      <p class="lead">Release history for AutoMapperLite. Full detail also maintained in <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/CHANGELOG.md">CHANGELOG.md</a>.</p>
+      <p class="lead">Release history for AutoMapperLite, verified against the package's actual published history on <a href="https://www.nuget.org/packages/AutoMapperLite">NuGet</a>. Full detail also maintained in <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/CHANGELOG.md">CHANGELOG.md</a>.</p>
     </section>
 
     <section id="v4-4-0">
@@ -80,62 +80,99 @@
         <li><strong>Disclosed behavior change:</strong> <code>List&lt;T&gt;</code> mapping resolves the item map from the source collection's declared item type rather than each element's runtime type.</li>
         <li>Allocations for simple, medium, nested, and deeply-nested object mapping now match hand-written manual mapping exactly. Collection mapping allocation now matches manual mapping/Mapster exactly via the generic API, from 10 items to 100,000.</li>
         <li>No public API breaking changes since 4.0.2 (only for anyone implementing <code>IMapper</code> directly rather than using the built-in <code>Mapper</code> class, due to the new interface member above).</li>
+        <li>Not currently flagged deprecated on NuGet. Engineering notes elsewhere refer to intermediate 4.1.0/4.2.0/4.3.0 milestones — those were internal-only labels for stages of this work and were never independently published; only 4.4.0 shipped.</li>
       </ul>
     </section>
 
     <section id="v4-0-2">
-      <h2>4.0.2 — 2026-08-29 <span class="badge badge-warn">deprecated</span></h2>
+      <h2>4.0.2 — 2026-08-29</h2>
+      <p>Development resumed on this date after the project had been dormant since the 3.2.1 release on 2025-07-09 — a gap of roughly 13.5 months. Not currently flagged deprecated on NuGet, despite being superseded by 4.4.0.</p>
+      <p><strong>Published NuGet release notes:</strong></p>
       <ul>
         <li>Fixed: updated test tooling (xunit.v3, Microsoft.NET.Test.Sdk 18.9.0) only supports net8.0+ — <code>AutoMapperLite.Tests</code> now targets net8.0/net9.0/net10.0 (the library itself is unaffected and still targets net6.0-net10.0)</li>
         <li>Fixed: a Microsoft Testing Platform v2 change dropped <code>dotnet test</code>'s legacy VSTest bridge on the .NET 10 SDK — a repo-root <code>global.json</code> now opts into native MTP mode</li>
         <li>Fixed: <code>Activator.CreateInstance</code> failures (e.g. mapping to a positional record with no parameterless constructor) now throw a clear <code>InvalidOperationException</code> naming the type, instead of a bare <code>MissingMethodException</code></li>
-        <li>Added real, measured BenchmarkDotNet comparisons against manual mapping, AutoMapper 16.2.0, and Mapster 10.0.12 — see <a href="performance.html">Performance</a>. AutoMapperLite is <strong>not</strong> the fastest of the four; docs and package description no longer implied otherwise</li>
+        <li>Added real, measured BenchmarkDotNet comparisons against manual mapping, AutoMapper 16.2.0, and Mapster 10.0.12 — see <a href="performance.html">Performance</a>. AutoMapperLite was <strong>not</strong> the fastest of the four at this point; docs and package description no longer implied otherwise</li>
         <li>Verified and documented previously-untested behaviors: null source properties are skipped (not assigned), auto-map requires an exact type match, and records with a parameterless constructor + init-only properties map correctly</li>
-        <li>All NuGet packages kept at their latest versions — none downgraded</li>
       </ul>
-    </section>
-
-    <section id="v4-0-1">
-      <h2>4.0.1 — 2026-08-29</h2>
-      <p>Official rebrand and release. <strong>All versions prior to 4.0.1 are deprecated.</strong></p>
+      <p><strong>Also carried in this release</strong> (confirmed from this repo's own commit history, not itemized in the terse NuGet notes above, and never split out as its own package):</p>
       <ul>
-        <li>Official project website: <a href="https://automapperlite.atkhssn.info">automapperlite.atkhssn.info</a></li>
-        <li>New visual identity: icon, favicons, app icons, social preview images, light/dark logo lockups</li>
-        <li>Full XML documentation comments on the public API (IntelliSense support)</li>
-        <li>NuGet package metadata overhauled: accurate description, project URL, refined tags</li>
-        <li>Static documentation site expanded: Getting Started, Guide, Performance, Comparison, FAQ, SEO/AEO metadata, structured data</li>
-        <li>Carries forward every 3.0.x fix below — no public API breaking changes since 3.0.3</li>
-      </ul>
-    </section>
-
-    <section id="v3-0-3">
-      <h2>3.0.3 — 2026-08-29 <span class="badge badge-warn">deprecated</span></h2>
-      <ul>
-        <li>Multi-targets net6.0/net7.0/net8.0/net9.0/net10.0 (previously net8.0 only)</li>
+        <li>Now multi-targets net6.0-net10.0 (the 3.0.1-3.2.1 line published in 2025 was net8.0-only)</li>
         <li>Fixed: mapping to a value-type (struct) destination silently produced an unpopulated struct</li>
         <li>Fixed: a List&lt;T&gt; destination property was never auto-mapped even when a map was registered for the item types</li>
-        <li>Hardened MapperConfig and DI registration for concurrent use</li>
-        <li>Reduced mapping-hot-path allocations and reflection overhead (~3.3-4x faster, ~6.5-8x less allocation)</li>
-        <li>Clearer exception when a ForMember/ForPath function returns an incompatible value</li>
-        <li>Fixed dotnet pack failing on a clean multi-targeted tree</li>
+        <li>Fixed: multiple ForPath calls under the same top-level destination property now all apply, instead of only the first</li>
+        <li>Hardened MapperConfig and DI registration for concurrent use; reduced mapping-hot-path allocations and reflection overhead</li>
+        <li>Added the static HTML documentation site, official rebrand, full XML documentation on the public API, and overhauled NuGet package metadata</li>
       </ul>
+      <p>This work passed through the local version numbers 3.0.2 (reused from the 2025 line), 3.0.3, and 4.0.1 in this repo's commit history over the course of one day before actually being packed and published — none of those three numbers were ever independently published to NuGet; 4.0.2 is the only release that resulted from this line of work.</p>
+    </section>
+
+    <section id="v3-2-1">
+      <h2>3.2.1 — 2025-07-09 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published and listed on NuGet. Depends on Microsoft.Extensions.DependencyInjection.Abstractions 9.0.7. Release notes identical, verbatim, to 2.0.4's below.</p>
+    </section>
+
+    <section id="v3-1-1">
+      <h2>3.1.1 — 2025-07-09 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published and listed on NuGet. Same dependency and release notes as 3.2.1.</p>
     </section>
 
     <section id="v3-0-2">
-      <h2>3.0.2 <span class="badge badge-warn">deprecated</span></h2>
-      <ul>
-        <li>Fixed: multiple ForPath calls under the same top-level destination property now all apply, instead of only the first</li>
-      </ul>
+      <h2>3.0.2 — 2025-07-09 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published and listed on NuGet. Same release notes as 2.0.4. Not the same release as the "3.0.2" version number that briefly existed locally in this repo during the 2026-08-29 development session (never published — see the 4.0.2 entry above); this is the real, originally-published 3.0.2 from 2025.</p>
     </section>
 
     <section id="v3-0-1">
-      <h2>3.0.1 <span class="badge badge-warn">deprecated</span></h2>
+      <h2>3.0.1 — 2025-07-05 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published but unlisted on NuGet (hidden from search, still installable by exact version). Same release notes as 2.0.4.</p>
+    </section>
+
+    <section id="v2-0-8">
+      <h2>2.0.8 — 2025-07-05 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published but unlisted. Same release notes as 2.0.4.</p>
+    </section>
+
+    <section id="v2-0-7">
+      <h2>2.0.7 — 2025-07-05 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published but unlisted. Same release notes as 2.0.4.</p>
+    </section>
+
+    <section id="v2-0-6">
+      <h2>2.0.6 — 2025-07-05 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published but unlisted. Same release notes as 2.0.4.</p>
+    </section>
+
+    <section id="v2-0-5">
+      <h2>2.0.5 — 2025-07-05 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published but unlisted. Same release notes as 2.0.4.</p>
+    </section>
+
+    <section id="v2-0-4">
+      <h2>2.0.4 — 2025-07-05 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published but unlisted. Release notes as published:</p>
       <ul>
         <li>Added ForPath and ForMember support</li>
         <li>Improved collection mapping (List&lt;T&gt;)</li>
         <li>Simplified usage with Map&lt;TDestination&gt;(TSource) format</li>
         <li>Support for nested property mapping and configuration profiles</li>
+        <li>Refactored internal Mapper logic and added DI support</li>
       </ul>
+      <p>This exact text was then republished verbatim, unchanged, through the next eight releases (2.0.5 through 3.2.1) — a real quirk of the published history, not a transcription error here.</p>
+    </section>
+
+    <section id="v2-0-3">
+      <h2>2.0.3 — 2025-07-05 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published but unlisted. No release notes were published for this version. Added a package icon (icon.png).</p>
+    </section>
+
+    <section id="v2-0-1">
+      <h2>2.0.1 — 2025-07-05 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>Published but unlisted. Retargeted from net6.0 to net8.0 and added a dependency on Microsoft.Extensions.DependencyInjection.Abstractions 9.0.6. Release notes as published: &ldquo;Initial release of AutoMapperLite v2.0.1. Dependency Injection (DI) support. Nested model mapping support. Lightweight and reflection-based. No third-party dependencies.&rdquo; (The &ldquo;no third-party dependencies&rdquo; line is as originally published; it's already in tension with the DI Abstractions dependency added in this same version.)</p>
+    </section>
+
+    <section id="v1-0-0">
+      <h2>1.0.0 — 2025-07-03 <span class="badge badge-warn">deprecated (critical bugs)</span></h2>
+      <p>The first published release. Targeted net6.0 only, with no DI package dependency. Published but unlisted. No release notes were published for this version.</p>
     </section>
 
   </div>
