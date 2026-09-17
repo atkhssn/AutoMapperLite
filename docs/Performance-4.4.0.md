@@ -104,6 +104,8 @@ Changing the *existing* overload's signature to `Func<TSource, TMember>` would b
 
 ## 10. Known Limitation: Array-Typed Nested Collection Properties
 
+> **Resolved in 4.4.1.** The limitation described below was specific to the 4.4.0 release covered by this report. 4.4.1 added `MappingPlanCompiler.BuildNestedArrayAssignment`/`Mapper.TryGetListToArrayItemTypes`, a second, array-returning helper alongside the existing `List<T>`-returning one — see `CHANGELOG.md` and `docs/changelog.html` for the 4.4.1 entry. This section is left as-is as a historical record of the 4.4.0 state.
+
 The top-level `Map<TDestination>(object)` API supports array destinations. Same-name nested collection *properties* do not — an array-typed nested property is silently skipped, the same as any other unregistered type mismatch. Producing an array from inside a compiled expression tree would need a second, array-returning helper; not implemented in 4.4.0, since it's a rarer shape than the top-level fix already covers. The nested-property source side also remains constrained to `List<T>`.
 
 ## 11. Remaining Bottlenecks
@@ -123,4 +125,4 @@ The top-level `Map<TDestination>(object)` API supports array destinations. Same-
 ## 13. Future Opportunities
 
 - The `ForMember` boxing fix from §12 remains available as a genuinely non-breaking, purely additive change if the library's maintainer decides the added internal complexity is worth it — the design was already worked out (see §12) and doesn't require a major-version bump, since it's additive.
-- Generalizing nested collection properties to support array destinations and array/interface sources would require a second, array-returning compiled-loop helper in `MappingPlanCompiler`.
+- ~~Generalizing nested collection properties to support array destinations~~ — done in 4.4.1 (see the note in §10). Array/interface *sources* (as opposed to destinations) for nested collection properties remain unimplemented — the nested-property source side stays constrained to `List<T>` in both the 4.4.0 and 4.4.1 array-destination helpers.

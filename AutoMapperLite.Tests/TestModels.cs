@@ -77,6 +77,14 @@ namespace AutoMapperLite.Tests
         public IList<EmployeeViewModel> Employees { get; set; } = new List<EmployeeViewModel>();
     }
 
+    // Same shape again, but the collection property is an array - exercises
+    // Mapper.TryGetListToArrayItemTypes/MappingPlanCompiler.BuildNestedArrayAssignment.
+    public class DepartmentArrayViewModel
+    {
+        public string DeptName { get; set; } = string.Empty;
+        public EmployeeViewModel[] Employees { get; set; } = Array.Empty<EmployeeViewModel>();
+    }
+
     public struct PointStruct
     {
         public int X { get; set; }

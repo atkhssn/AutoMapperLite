@@ -22,6 +22,9 @@ namespace AutoMapperLite
         private static readonly MethodInfo MapListWithBuilderDefinition =
             typeof(MappingPlanCompiler).GetMethod(nameof(MapListWithBuilder), BindingFlags.NonPublic | BindingFlags.Static)!;
 
+        private static readonly MethodInfo MapListToArrayWithBuilderDefinition =
+            typeof(MappingPlanCompiler).GetMethod(nameof(MapListToArrayWithBuilder), BindingFlags.NonPublic | BindingFlags.Static)!;
+
         internal static Func<TSource, TDestination> Compile<TSource, TDestination>(
             MapBuilder<TSource, TDestination> builder, IMapperConfig config)
         {
@@ -122,8 +125,8 @@ namespace AutoMapperLite
                 // at plan-build time, not re-checked per call. In both cases the nested
                 // MapBuilder itself is also resolved here, at compile time, and baked into the
                 // compiled expression as a constant — see BuildNestedObjectAssignment/
-                // BuildNestedListAssignment for why: it removes source.GetType() and a
-                // dictionary lookup from the runtime path entirely.
+                // BuildNestedListAssignment/BuildNestedArrayAssignment for why: it removes
+                // source.GetType() and a dictionary lookup from the runtime path entirely.
                 if (config.HasMap(sourceProp.PropertyType, destProp.PropertyType))
                 {
                     assign = BuildNestedObjectAssignment(destAccess, sourceValue, sourceProp.PropertyType, destProp.PropertyType, config);
@@ -132,6 +135,11 @@ namespace AutoMapperLite
                          && config.HasMap(itemSource, itemDest))
                 {
                     assign = BuildNestedListAssignment(destAccess, sourceValue, itemSource, itemDest, config);
+                }
+                else if (Mapper.TryGetListToArrayItemTypes(sourceProp.PropertyType, destProp.PropertyType, out var arrItemSource, out var arrItemDest)
+                         && config.HasMap(arrItemSource, arrItemDest))
+                {
+                    assign = BuildNestedArrayAssignment(destAccess, sourceValue, arrItemSource, arrItemDest, config);
                 }
                 else
                 {
@@ -200,6 +208,33 @@ namespace AutoMapperLite
             var result = new List<TDestItem>(source.Count);
             foreach (var item in source)
                 result.Add(compiled(item));
+            return result;
+        }
+
+        // Same idea as BuildNestedListAssignment, for a nested List<TSourceItem> -> TDestItem[]
+        // property (source stays List<T>, destination is an array) whose item types have their
+        // own registered map. A separate helper is needed rather than widening
+        // BuildNestedListAssignment/MapListWithBuilder, because List<TDestItem> is not
+        // reference-assignable to TDestItem[] - see Mapper.TryGetListToArrayItemTypes.
+        private static Expression BuildNestedArrayAssignment(
+            MemberExpression destAccess, Expression sourceValue, Type itemSourceType, Type itemDestType, IMapperConfig config)
+        {
+            var builder = GetMapMethodDefinition.MakeGenericMethod(itemSourceType, itemDestType).Invoke(config, null)!;
+            var builderType = typeof(MapBuilder<,>).MakeGenericType(itemSourceType, itemDestType);
+            var builderConst = Expression.Constant(builder, builderType);
+            var configConst = Expression.Constant(config, typeof(IMapperConfig));
+            var loopMethod = MapListToArrayWithBuilderDefinition.MakeGenericMethod(itemSourceType, itemDestType);
+            var mapped = Expression.Call(loopMethod, sourceValue, builderConst, configConst);
+            return Expression.Assign(destAccess, mapped);
+        }
+
+        private static TDestItem[] MapListToArrayWithBuilder<TSourceItem, TDestItem>(
+            List<TSourceItem> source, MapBuilder<TSourceItem, TDestItem> builder, IMapperConfig config)
+        {
+            var compiled = builder.GetCompiledMap(config);
+            var result = new TDestItem[source.Count];
+            for (int i = 0; i < source.Count; i++)
+                result[i] = compiled(source[i]);
             return result;
         }
 

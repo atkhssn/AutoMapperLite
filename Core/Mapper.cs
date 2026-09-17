@@ -484,15 +484,35 @@ namespace AutoMapperLite
         // destination side additionally accepts the same List-compatible interfaces recognized by
         // IsListCompatibleDestination above, since MapListWithBuilder already returns a List<T>,
         // which is reference-assignable to all of them with no extra work. Array-typed destination
-        // *properties* are a documented limitation for now (unlike the top-level API above) since
-        // producing one from inside a compiled expression tree would need its own dedicated
-        // helper - not worth the added compiler complexity for what both the top-level fix and
-        // 4.x history show is a materially rarer shape for a nested property to be declared as.
+        // *properties* are handled by the separate TryGetListToArrayItemTypes/
+        // BuildNestedArrayAssignment path below, since producing an array from inside a compiled
+        // expression tree needs its own dedicated helper (List<T> isn't reference-assignable to
+        // T[]) rather than a widened Type check here.
         internal static bool TryGetListItemTypes(Type sourceType, Type destType, out Type sourceItemType, out Type destItemType)
         {
             if (IsGenericList(sourceType) && IsListCompatibleDestination(destType, out destItemType))
             {
                 sourceItemType = sourceType.GetGenericArguments()[0];
+                return true;
+            }
+
+            sourceItemType = destItemType = typeof(object);
+            return false;
+        }
+
+        // The array-destination counterpart of TryGetListItemTypes above, closing what was
+        // previously a documented limitation (see CLAUDE.md): a same-name List<T> -> T[]
+        // property is now auto-mapped the same way a List-compatible-interface property
+        // already was, via MappingPlanCompiler.BuildNestedArrayAssignment/
+        // MapListToArrayWithBuilder. The source side stays constrained to an exact List<T>,
+        // matching TryGetListItemTypes's own constraint, since the compiled call site expects
+        // that concrete type.
+        internal static bool TryGetListToArrayItemTypes(Type sourceType, Type destType, out Type sourceItemType, out Type destItemType)
+        {
+            if (IsGenericList(sourceType) && destType.IsArray)
+            {
+                sourceItemType = sourceType.GetGenericArguments()[0];
+                destItemType = destType.GetElementType()!;
                 return true;
             }
 

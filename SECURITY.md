@@ -7,8 +7,8 @@ security fixes.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 4.2.x   | :white_check_mark: |
-| < 4.2   | :x:                |
+| 4.4.x   | :white_check_mark: |
+| < 4.4   | :x:                |
 
 ## Reporting a Vulnerability
 

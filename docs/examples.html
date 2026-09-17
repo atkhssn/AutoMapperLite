@@ -272,6 +272,14 @@ var result = mapper.Map&lt;DepartmentViewModel&gt;(new Department
 // result.DeptName == "Engineering"
 // result.Employees.Count == 2
 // result.Employees[0].Name == "Ada"</code></pre>
+      <div class="note">
+        <strong>Also works for array destinations:</strong> declaring
+        <code>EmployeeViewModel[] Employees</code> instead of
+        <code>List&lt;EmployeeViewModel&gt; Employees</code> on
+        <code>DepartmentViewModel</code> maps the same way — the source property still
+        needs to be a <code>List&lt;T&gt;</code>, but the destination property can be a
+        <code>List&lt;T&gt;</code>, any of <code>IList&lt;T&gt;</code>/<code>ICollection&lt;T&gt;</code>/<code>IReadOnlyList&lt;T&gt;</code>/<code>IReadOnlyCollection&lt;T&gt;</code>/<code>IEnumerable&lt;T&gt;</code>, or an array.
+      </div>
     </section>
   </div>
 </main>
@@ -317,7 +325,7 @@ var result = mapper.Map&lt;DepartmentViewModel&gt;(new Department
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.4.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.4.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

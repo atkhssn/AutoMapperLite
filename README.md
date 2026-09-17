@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <strong>v4.4.0</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
+  <strong>v4.4.1</strong> · <a href="LICENSE">MIT License</a> · net6.0 – net10.0 ·
   <a href="https://automapperlite.atkhssn.info">automapperlite.atkhssn.info</a>
 </p>
 
@@ -17,7 +17,7 @@ Designed to simplify DTO and entity mapping with easy-to-use profiles, support f
 
 Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 
-> **4.4.0 is the current official release.** All prior versions (4.0.2 and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
+> **4.4.1 is the current official release.** All prior versions (4.0.2 and earlier) are deprecated — see [CHANGELOG.md](CHANGELOG.md) for release history.
 
 📖 Full documentation (Getting Started, API reference, usage guide, performance, FAQ, comparison): **[automapperlite.atkhssn.info](https://automapperlite.atkhssn.info)**.
 
@@ -41,7 +41,7 @@ Targets `net6.0`, `net7.0`, `net8.0`, `net9.0`, and `net10.0`.
 Install the NuGet package in your project:
 
 ```bash
-dotnet add package AutoMapperLite --version 4.4.0
+dotnet add package AutoMapperLite --version 4.4.1
 ```
 
 ### 1. Register AutoMapperLite in your DI container

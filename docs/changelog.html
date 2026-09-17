@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Changelog — AutoMapperLite</title>
-<meta name="description" content="Release history for AutoMapperLite. 4.4.0 is the current official release; all prior versions are deprecated.">
+<meta name="description" content="Release history for AutoMapperLite. 4.4.1 is the current official release; all prior versions are deprecated.">
 <link rel="canonical" href="https://automapperlite.atkhssn.info/changelog.html">
 <meta name="robots" content="index, follow">
 
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AutoMapperLite">
 <meta property="og:title" content="Changelog — AutoMapperLite">
-<meta property="og:description" content="Release history for AutoMapperLite. 4.4.0 is the current official release; all prior versions are deprecated.">
+<meta property="og:description" content="Release history for AutoMapperLite. 4.4.1 is the current official release; all prior versions are deprecated.">
 <meta property="og:url" content="https://automapperlite.atkhssn.info/changelog.html">
 <meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -26,7 +26,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Changelog — AutoMapperLite">
-<meta name="twitter:description" content="Release history for AutoMapperLite. 4.4.0 is the current official release; all prior versions are deprecated.">
+<meta name="twitter:description" content="Release history for AutoMapperLite. 4.4.1 is the current official release; all prior versions are deprecated.">
 <meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
 
 <link rel="stylesheet" href="assets/styles.css">
@@ -69,8 +69,18 @@
       <p class="lead">Release history for AutoMapperLite, verified against the package's actual published history on <a href="https://www.nuget.org/packages/AutoMapperLite">NuGet</a>. Full detail also maintained in <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/CHANGELOG.md">CHANGELOG.md</a>.</p>
     </section>
 
+    <section id="v4-4-1">
+      <h2>4.4.1 <span class="badge">current release</span> — 2026-09-17</h2>
+      <p><strong>Feature addition and documentation fixes.</strong> Same-name nested collection destination <em>properties</em> now also accept an array (<code>T[]</code>) destination, matching the array support the top-level <code>Map&lt;TDestination&gt;(object)</code> API already had since 4.4.0.</p>
+      <ul>
+        <li><strong>Added:</strong> a <code>List&lt;TSource&gt;</code> source property mapping into a <code>TDest[]</code> destination property (with a registered map for the item types) is now populated, the same way a <code>List&lt;T&gt;</code>- or interface-typed nested collection property already was — previously it was silently left unmapped, the same as any other unregistered type mismatch. Purely additive: no previously-mapped output changes. See <a href="api-reference.html#mapbuilder">API Reference</a> and <a href="examples.html#nested-collections">Examples → Nested collection properties</a>.</li>
+        <li><strong>Documentation fixes</strong> (no code-behavior changes): destination construction described accurately as a compiled constructor call (<code>Expression.New</code>) rather than <code>Activator.CreateInstance</code> in the guide and FAQ; the home page's comparison FAQ answer no longer claims AutoMapperLite trails AutoMapper on collections (it has beaten AutoMapper there since 4.4.0); the FAQ's visible AutoMapper-comparison answer no longer contradicts its own structured data by claiming "no compiled-expression engine"; <code>SECURITY.md</code>'s supported-version table no longer references <code>4.2.x</code>, a version that was never published to NuGet.</li>
+        <li>No public API breaking changes since 4.0.2.</li>
+      </ul>
+    </section>
+
     <section id="v4-4-0">
-      <h2>4.4.0 <span class="badge">current release</span> — 2026-09-03</h2>
+      <h2>4.4.0 — 2026-09-03</h2>
       <p><strong>Mapping engine and performance redesign.</strong> Each source/destination type pair now compiles into a cached delegate via <code>System.Linq.Expressions</code> on first use, instead of being interpreted through reflection. Dispatch, collection element resolution, and nested same-name property mapping are all resolved once and cached rather than re-resolved per call. See <a href="performance.html">Performance</a> for full measured results.</p>
       <ul>
         <li><strong>Added:</strong> <code>IMapper.Map&lt;TSource, TDestination&gt;(TSource source)</code> — a strongly-typed overload for call sites where the source type is known at compile time. This is the fastest way to call AutoMapperLite, and now also works directly for collections: <code>mapper.Map&lt;List&lt;TSourceItem&gt;, List&lt;TDestItem&gt;&gt;(sourceList)</code> skips resolving the source collection's runtime type.</li>
@@ -219,7 +229,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.4.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.4.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

@@ -224,6 +224,28 @@ namespace AutoMapperLite.Tests
         }
 
         [Fact]
+        public void Map_AutoMapsNestedArrayProperty_WhenItemTypesHaveRegisteredMap()
+        {
+            // Array-destination counterpart of Map_AutoMapsNestedListProperty_WhenDestinationPropertyIsListCompatibleInterface
+            // above - exercises Mapper.TryGetListToArrayItemTypes / MappingPlanCompiler.BuildNestedArrayAssignment.
+            var config = new MapperConfig();
+            config.CreateMap<Employee, EmployeeViewModel>();
+            config.CreateMap<Department, DepartmentArrayViewModel>();
+            var mapper = new Mapper(config);
+
+            var result = mapper.Map<DepartmentArrayViewModel>(new Department
+            {
+                DeptName = "Engineering",
+                Employees = new List<Employee> { new() { Name = "Ada" }, new() { Name = "Alan" } }
+            });
+
+            Assert.Equal("Engineering", result.DeptName);
+            Assert.Equal(2, result.Employees.Length);
+            Assert.Equal("Ada", result.Employees[0].Name);
+            Assert.Equal("Alan", result.Employees[1].Name);
+        }
+
+        [Fact]
         public void Map_MapsListOfObjects_ViaCustomIEnumerableSource()
         {
             // A LINQ iterator implements IEnumerable<T> but is neither List<T> nor an array -

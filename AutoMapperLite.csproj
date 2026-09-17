@@ -6,7 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-		<!-- Microsoft.Extensions.DependencyInjection.Abstractions 10.0.11 declares net6.0/net7.0
+		<!-- Microsoft.Extensions.DependencyInjection.Abstractions 10.0.12 declares net6.0/net7.0
 		     as "not tested" (both are EOL runtimes) but its assembly is netstandard2.0-compatible
 		     and functions correctly there: verified via an actual runtime smoke test (DI container
 		     built, AddAutoMapperLite resolved, a real Map<T> call executed and asserted) on net6.0,
@@ -15,53 +15,37 @@
 
 		<!-- NuGet Metadata -->
 		<PackageId>AutoMapperLite</PackageId>
-		<Version>4.4.0</Version>
+		<Version>4.4.1</Version>
 		<PackageReleaseNotes>
-			AutoMapperLite 4.4.0 — current official release; all prior versions are deprecated.
+			AutoMapperLite 4.4.1 — current official release; all prior versions are deprecated.
 
-			Mapping engine and performance redesign. Each source/destination type pair now
-			compiles into a cached delegate via System.Linq.Expressions on first use, instead of
-			interpreting mappings through reflection. Dispatch, collection element resolution, and
-			nested same-name property mapping are all resolved once and cached rather than
-			re-resolved per call. See docs/performance.html for full measured results.
+			• Added: same-name nested collection destination *properties* now also accept an
+			  array (T[]) destination, matching the array support the top-level
+			  Map&lt;TDestination&gt;(object) API already had since 4.4.0. Previously an
+			  array-typed nested collection property was silently left unmapped even when a map
+			  was registered for the item types; it is now populated the same way a List&lt;T&gt;-
+			  or interface-typed nested collection property already was. Purely additive — no
+			  existing mapping output changes, since this only fills in a property that was
+			  previously always left at its default.
+			• Documentation: corrected several stale claims left over from before the 4.4.0
+			  mapping-engine redesign — destination construction is described as a compiled
+			  constructor call (Expression.New) rather than Activator.CreateInstance in the
+			  guide/FAQ, the home page's comparison FAQ answer no longer claims AutoMapperLite
+			  trails AutoMapper on collections (it has beaten AutoMapper there since 4.4.0), and
+			  SECURITY.md's supported-version table no longer references 4.2.x, a version that
+			  was never published to NuGet (see CHANGELOG.md/CLAUDE.md for the verified publish
+			  history). No code-behavior changes from the documentation fixes.
+			• No public API breaking changes since 4.0.2.
 
-			• Added: IMapper.Map&lt;TSource, TDestination&gt;(TSource source) — a strongly-typed
-			  overload for call sites where the source type is known at compile time. This is the
-			  fastest way to call AutoMapperLite, and now also works directly for collections:
-			  mapper.Map&lt;List&lt;TSourceItem&gt;, List&lt;TDestItem&gt;&gt;(sourceList) skips resolving
-			  the source collection's runtime type.
-			• Added: collection destinations are no longer limited to List&lt;T&gt;.
-			  Map&lt;TDestination&gt;(object) now also accepts T[], IList&lt;T&gt;, ICollection&lt;T&gt;,
-			  IReadOnlyList&lt;T&gt;, IReadOnlyCollection&lt;T&gt;, and IEnumerable&lt;T&gt;. The same
-			  flexibility applies to same-name nested collection properties.
-			• Performance: fixed a collection-loop interface-dispatch cost that was limiting
-			  collection-mapping throughput — casting the source to IEnumerable&lt;T&gt; and using
-			  foreach forced List&lt;T&gt;'s own struct enumerator to be boxed through the interface on
-			  every call. The loop now indexes List&lt;T&gt;/arrays directly. Measured: a 100-item
-			  collection dropped from ~1.3 us to ~0.78 us (object API) / ~0.67 us (generic API); a
-			  5,000-item collection dropped from ~60-74 us to ~35 us. AutoMapperLite now beats
-			  AutoMapper on collection mapping at every size from 1,000 items upward (previously it
-			  trailed), and at 100,000 items is within 8% of hand-written manual mapping's own time.
-			• Behavior change (disclosed): exceptions raised during mapping now propagate directly
-			  as InvalidOperationException instead of being wrapped in TargetInvocationException.
-			• Behavior change (disclosed): List&lt;T&gt; mapping resolves the item map from the source
-			  collection's declared item type rather than each element's runtime type.
-			• Allocations for simple, medium, nested, and deeply-nested object mapping now match
-			  hand-written manual mapping exactly. Collection mapping allocation now matches manual
-			  mapping/Mapster exactly via the generic API, from 10 items to 100,000.
-			• No public API breaking changes since 4.0.2 (only for anyone implementing IMapper
-			  directly rather than using the built-in Mapper class, due to the new interface
-			  member above).
-
-			Previous (4.0.2):
-			• Fixed: updated test tooling required net8.0+; the test project now targets
-			  net8.0-net10.0 (the library itself still targets net6.0-net10.0).
-			• Fixed: Activator.CreateInstance failures now throw a clear InvalidOperationException
-			  naming the type, instead of a bare MissingMethodException.
-			• Added real, measured BenchmarkDotNet comparisons against manual mapping, AutoMapper,
-			  and Mapster.
-			• Verified and documented: null source properties are skipped (not assigned), auto-map
-			  requires an exact type match, and records with init-only properties map correctly.
+			Previous (4.4.0): mapping engine and performance redesign — each source/destination
+			type pair now compiles into a cached delegate via System.Linq.Expressions on first
+			use instead of being interpreted through reflection; added
+			IMapper.Map&lt;TSource,TDestination&gt;(TSource) and broader collection-destination
+			support (T[], IList&lt;T&gt;, ICollection&lt;T&gt;, IReadOnlyList&lt;T&gt;,
+			IReadOnlyCollection&lt;T&gt;, IEnumerable&lt;T&gt;); fixed a collection-loop
+			interface-dispatch cost, flipping AutoMapperLite from trailing AutoMapper on
+			collection mapping to beating it at every size from 1,000 items upward. See
+			docs/performance.html and docs/changelog.html for full measured results and history.
 		</PackageReleaseNotes>
 		<Authors>Atik Hassan</Authors>
 		<Company>AutoMapperLite</Company>
@@ -84,7 +68,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
 	</ItemGroup>
 
 	<ItemGroup>

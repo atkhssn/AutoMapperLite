@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>API Reference — AutoMapperLite</title>
-<meta name="description" content="Full API reference for AutoMapperLite 4.4.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
+<meta name="description" content="Full API reference for AutoMapperLite 4.4.1: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
 <link rel="canonical" href="https://automapperlite.atkhssn.info/api-reference.html">
 <meta name="robots" content="index, follow">
 
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AutoMapperLite">
 <meta property="og:title" content="API Reference — AutoMapperLite">
-<meta property="og:description" content="Full API reference for AutoMapperLite 4.4.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
+<meta property="og:description" content="Full API reference for AutoMapperLite 4.4.1: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
 <meta property="og:url" content="https://automapperlite.atkhssn.info/api-reference.html">
 <meta property="og:image" content="https://automapperlite.atkhssn.info/assets/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -26,7 +26,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="API Reference — AutoMapperLite">
-<meta name="twitter:description" content="Full API reference for AutoMapperLite 4.4.0: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
+<meta name="twitter:description" content="Full API reference for AutoMapperLite 4.4.1: IMapper, IMapperConfig, MapBuilder, Profile, and the AddAutoMapperLite DI registration extension.">
 <meta name="twitter:image" content="https://automapperlite.atkhssn.info/assets/twitter-card.png">
 
 <link rel="stylesheet" href="assets/styles.css">
@@ -152,7 +152,8 @@ List&lt;SimpleDto&gt; list = mapper.Map&lt;List&lt;SimpleSource&gt;, List&lt;Sim
         <p>
           Returns whether a map is registered for the given type pair. Used internally
           by <code>Mapper</code> to decide whether a mismatched-type property (including
-          the item types of two <code>List&lt;T&gt;</code> properties) can be recursively mapped.
+          the item types of a nested <code>List&lt;T&gt;</code>, collection-interface, or
+          array-typed property) can be recursively mapped.
         </p>
       </div>
     </section>
@@ -305,7 +306,7 @@ builder.Services.AddAutoMapperLite(Assembly.GetExecutingAssembly());</code></pre
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.4.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.4.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

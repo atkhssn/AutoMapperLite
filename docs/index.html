@@ -38,7 +38,7 @@
   "name": "AutoMapperLite",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": ".NET 6.0, .NET 7.0, .NET 8.0, .NET 9.0, .NET 10.0",
-  "softwareVersion": "4.4.0",
+  "softwareVersion": "4.4.1",
   "url": "https://automapperlite.atkhssn.info",
   "downloadUrl": "https://www.nuget.org/packages/AutoMapperLite",
   "license": "https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE",
@@ -91,14 +91,14 @@
         AutoMapper installation.
       </p>
       <div class="badges">
-        <span class="badge">v4.4.0 — current release</span>
+        <span class="badge">v4.4.1 — current release</span>
         <span class="badge">MIT licensed</span>
         <span class="badge">net6.0 – net10.0</span>
         <span class="badge">Thread-safe</span>
       </div>
       <p style="color: var(--fg-muted); font-size: 0.88rem;">
         Created and maintained by <a href="https://atkhssn.info">Atik Hassan</a>.
-        Versions prior to 4.4.0 are deprecated — see the <a href="changelog.html">changelog</a>.
+        Versions prior to 4.4.1 are deprecated — see the <a href="changelog.html">changelog</a>.
       </p>
       <div class="cta-row">
         <a class="btn btn-primary" href="#quick-start">Quick Start</a>
@@ -140,7 +140,7 @@
     <section id="installation">
       <h2>Installation</h2>
       <p>Install the NuGet package in your project:</p>
-      <pre><code>dotnet add package AutoMapperLite --version 4.4.0</code></pre>
+      <pre><code>dotnet add package AutoMapperLite --version 4.4.1</code></pre>
       <p>Targets <code>net6.0</code>, <code>net7.0</code>, <code>net8.0</code>, <code>net9.0</code>, and <code>net10.0</code>.</p>
     </section>
 
@@ -223,7 +223,7 @@ public class MyMappingProfile : Profile
       </details>
       <details class="faq-item">
         <summary>How does AutoMapperLite compare to AutoMapper or Mapster?</summary>
-        <div class="faq-answer">AutoMapperLite trades some flexibility (no LINQ projection, no convention/coercion engine) for a much smaller footprint. Like AutoMapper and Mapster, it compiles each configured type pair into a cached delegate rather than mapping via raw reflection — but it's still slower than both on warm, repeated calls, especially collections. See the full <a href="comparison.html">comparison</a> and <a href="performance.html">performance</a> pages.</div>
+        <div class="faq-answer">AutoMapperLite trades some flexibility (no LINQ projection, no convention/coercion engine) for a much smaller footprint. Like AutoMapper and Mapster, it compiles each configured type pair into a cached delegate rather than mapping via raw reflection — it now beats AutoMapper on warm, repeated calls for both object and collection mapping, though Mapster remains faster on raw per-call time. See the full <a href="comparison.html">comparison</a> and <a href="performance.html">performance</a> pages.</div>
       </details>
       <p><a href="faq.html">See the full FAQ →</a></p>
     </section>
@@ -301,7 +301,7 @@ public class MyMappingProfile : Profile
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.4.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.4.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         © 2025–2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

@@ -124,8 +124,12 @@
       <pre><code>var result = mapper.Map&lt;List&lt;SimpleDestination&gt;&gt;(sourceList);</code></pre>
       <h3>A <code>List&lt;T&gt;</code> destination property</h3>
       <p>
-        As long as a map is registered for the item types, a <code>List&lt;T&gt;</code>
-        property is auto-mapped like any other property — see
+        As long as a map is registered for the item types, a <code>List&lt;T&gt;</code>,
+        collection-interface (<code>IList&lt;T&gt;</code>, <code>ICollection&lt;T&gt;</code>,
+        <code>IReadOnlyList&lt;T&gt;</code>, <code>IReadOnlyCollection&lt;T&gt;</code>,
+        <code>IEnumerable&lt;T&gt;</code>), or array (<code>T[]</code>) destination property
+        is auto-mapped like any other property, from a <code>List&lt;T&gt;</code> source
+        property — see
         <a href="examples.html#nested-collections">Examples → Nested collection properties</a>.
       </p>
     </section>
@@ -192,12 +196,13 @@
         </li>
         <li>
           <strong>Destination types need a public parameterless constructor</strong> — instances
-          are created via <code>Activator.CreateInstance</code>. Positional records
+          are created via a compiled constructor call (<code>Expression.New</code>), not
+          reflection's <code>Activator.CreateInstance</code>. Positional records
           (<code>record Foo(int A)</code>) and classes requiring constructor arguments throw a
           clear <code>InvalidOperationException</code> naming the type. Records <em>with</em> a
-          parameterless constructor and <code>{ get; init; }</code> properties work fine —
-          reflection can set an init accessor even though the C# compiler wouldn't let you call
-          it directly outside the constructor.
+          parameterless constructor and <code>{ get; init; }</code> properties work fine — a
+          compiled property assignment can set an init accessor even though the C# compiler
+          wouldn't let you call it directly outside the constructor.
         </li>
         <li>
           <strong>A <code>null</code> element inside a source collection</strong> passed to
@@ -252,7 +257,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.4.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.4.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>

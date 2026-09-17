@@ -88,7 +88,7 @@
       "name": "How do I install AutoMapperLite?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "dotnet add package AutoMapperLite --version 4.4.0. See Getting Started for the full walkthrough."
+        "text": "dotnet add package AutoMapperLite --version 4.4.1. See Getting Started for the full walkthrough."
       }
     },
     {
@@ -104,7 +104,7 @@
       "name": "How does AutoMapperLite compare with AutoMapper?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Both compile mappings into cached expression-tree delegates rather than using reflection at runtime. AutoMapperLite is smaller in scope than AutoMapper \u2014 no LINQ ProjectTo, no large convention engine \u2014 in exchange for a minimal dependency footprint and no commercial licensing considerations. See the full comparison."
+        "text": "Both compile mappings into cached expression-tree delegates rather than using reflection at runtime. AutoMapperLite is smaller in scope than AutoMapper \u2014 no LINQ ProjectTo, no large convention/coercion engine \u2014 in exchange for a minimal dependency footprint and no commercial licensing considerations. See the full comparison."
       }
     },
     {
@@ -168,7 +168,7 @@
       "name": "Does AutoMapperLite support records or constructor mapping?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Records with a parameterless constructor and init-only properties work fine. Positional records and any type without a public parameterless constructor are not supported as mapping destinations, since instances are created via Activator.CreateInstance."
+        "text": "Records with a parameterless constructor and init-only properties work fine. Positional records and any type without a public parameterless constructor are not supported as mapping destinations, since instances are created via a compiled constructor call (Expression.New), not Activator.CreateInstance."
       }
     }
   ]
@@ -240,7 +240,7 @@
       </details>
       <details class="faq-item">
         <summary>How do I install AutoMapperLite?</summary>
-        <div class="faq-answer"><code>dotnet add package AutoMapperLite --version 4.4.0</code>. See <a href="getting-started.html">Getting Started</a> for the full walkthrough.</div>
+        <div class="faq-answer"><code>dotnet add package AutoMapperLite --version 4.4.1</code>. See <a href="getting-started.html">Getting Started</a> for the full walkthrough.</div>
       </details>
       <details class="faq-item">
         <summary>How do I map an object with AutoMapperLite?</summary>
@@ -248,7 +248,7 @@
       </details>
       <details class="faq-item">
         <summary>How does AutoMapperLite compare with AutoMapper?</summary>
-        <div class="faq-answer">AutoMapperLite is smaller in scope — no LINQ <code>ProjectTo</code>, no compiled-expression engine — in exchange for a minimal dependency footprint and no commercial licensing considerations. See the full <a href="comparison.html">comparison</a>.</div>
+        <div class="faq-answer">Both compile mappings into cached expression-tree delegates rather than using reflection at runtime. AutoMapperLite is smaller in scope — no LINQ <code>ProjectTo</code>, no large convention/coercion engine — in exchange for a minimal dependency footprint and no commercial licensing considerations. See the full <a href="comparison.html">comparison</a>.</div>
       </details>
       <details class="faq-item">
         <summary>How does AutoMapperLite compare with Mapster?</summary>
@@ -264,7 +264,7 @@
       </details>
       <details class="faq-item">
         <summary>Does AutoMapperLite support collections?</summary>
-        <div class="faq-answer">Yes — top-level <code>List&lt;T&gt;</code> mapping and nested <code>List&lt;T&gt;</code> destination properties, as long as a map is registered for the item types. See <a href="examples.html#collections">Examples → Collections</a>.</div>
+        <div class="faq-answer">Yes — <code>List&lt;T&gt;</code>, arrays, and common collection interfaces (<code>IList&lt;T&gt;</code>, <code>ICollection&lt;T&gt;</code>, <code>IReadOnlyList&lt;T&gt;</code>, <code>IReadOnlyCollection&lt;T&gt;</code>, <code>IEnumerable&lt;T&gt;</code>) are all supported as mapping destinations, both at the top level and as nested properties, as long as a map is registered for the item types. See <a href="examples.html#collections">Examples → Collections</a>.</div>
       </details>
       <details class="faq-item">
         <summary>Does AutoMapperLite support dependency injection?</summary>
@@ -280,7 +280,7 @@
       </details>
       <details class="faq-item">
         <summary>Does AutoMapperLite support records or constructor mapping?</summary>
-        <div class="faq-answer">Records with a parameterless constructor and <code>{ get; init; }</code> properties work fine. Positional records (<code>record Foo(int A)</code>) and any type without a public parameterless constructor are not supported as mapping destinations — instances are created via <code>Activator.CreateInstance</code>, with a clear error naming the type when that fails. See <a href="guide.html#limitations">Guide → Limitations</a>.</div>
+        <div class="faq-answer">Records with a parameterless constructor and <code>{ get; init; }</code> properties work fine. Positional records (<code>record Foo(int A)</code>) and any type without a public parameterless constructor are not supported as mapping destinations — instances are created via a compiled constructor call (<code>Expression.New</code>), not <code>Activator.CreateInstance</code>, with a clear error naming the type when that fails. See <a href="guide.html#limitations">Guide → Limitations</a>.</div>
       </details>
     </section>
 
@@ -328,7 +328,7 @@
     </div>
     <div class="footer-bottom">
       <p>
-        AutoMapperLite v4.4.0 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
+        AutoMapperLite v4.4.1 is open-source software licensed under the <a href="https://github.com/atkhssn/AutoMapperLite/blob/main/LICENSE">MIT License</a>.
         &copy; 2025&ndash;2026 <a href="https://atkhssn.info">Atik Hassan</a>.
       </p>
     </div>
