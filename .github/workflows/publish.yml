@@ -76,6 +76,10 @@ jobs:
       # is missing/empty, instead of surfacing as NuGet/login@v1's generic
       # "Input required and not supplied: user" further down. Never prints
       # the value itself — only whether it's present and how long it is.
+      # Prints a SHA-256 hash, not the raw value, so this is safe to leave in
+      # logs. Compare against `printf 'atkhssn' | sha256sum` run locally to
+      # confirm the secret is exactly the expected username (no trailing
+      # whitespace/newline, no leftover wrong value from an earlier mistake).
       - name: Verify NUGET_USER secret is set
         env:
           NUGET_USER: ${{ secrets.NUGET_USER }}
@@ -85,6 +89,7 @@ jobs:
             exit 1
           fi
           echo "NUGET_USER is set (${#NUGET_USER} characters)."
+          echo -n "$NUGET_USER" | sha256sum
 
       # Exchanges this run's GitHub OIDC token for a short-lived (~1 hour)
       # NuGet API key — no long-lived secret is stored anywhere. Requires a
