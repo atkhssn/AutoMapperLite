@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type "publish" to confirm you want to push AutoMapperLite.csproj\'s current <Version> to nuget.org'
+        description: 'Type "publish" to confirm you want to push the current <Version> in AutoMapperLite.csproj to nuget.org'
         required: true
 
 concurrency:
