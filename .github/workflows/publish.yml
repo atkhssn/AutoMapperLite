@@ -65,6 +65,20 @@ jobs:
       - name: Pack
         run: dotnet pack AutoMapperLite.csproj -c Release --no-restore -o artifacts
 
+      # Fails fast with an unambiguous message if the NUGET_USER repo secret
+      # is missing/empty, instead of surfacing as NuGet/login@v1's generic
+      # "Input required and not supplied: user" further down. Never prints
+      # the value itself — only whether it's present and how long it is.
+      - name: Verify NUGET_USER secret is set
+        env:
+          NUGET_USER: ${{ secrets.NUGET_USER }}
+        run: |
+          if [ -z "$NUGET_USER" ]; then
+            echo "::error::NUGET_USER repository secret is empty or not set. Add it under Settings > Secrets and variables > Actions > Repository secrets (not Environment secrets)."
+            exit 1
+          fi
+          echo "NUGET_USER is set (${#NUGET_USER} characters)."
+
       # Exchanges this run's GitHub OIDC token for a short-lived (~1 hour)
       # NuGet API key — no long-lived secret is stored anywhere. Requires a
       # matching Trusted Publishing policy configured on nuget.org for the
