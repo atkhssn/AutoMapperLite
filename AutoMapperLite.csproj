@@ -76,12 +76,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Remove="AutoMapperLite.Tests\**" />
-		<Compile Remove="AutoMapperLite.Benchmarks\**" />
-		<EmbeddedResource Remove="AutoMapperLite.Tests\**" />
-		<EmbeddedResource Remove="AutoMapperLite.Benchmarks\**" />
-		<None Remove="AutoMapperLite.Tests\**" />
-		<None Remove="AutoMapperLite.Benchmarks\**" />
+		<Compile Remove="AutoMapperLite.Tests/**" />
+		<Compile Remove="AutoMapperLite.Benchmarks/**" />
+		<EmbeddedResource Remove="AutoMapperLite.Tests/**" />
+		<EmbeddedResource Remove="AutoMapperLite.Benchmarks/**" />
+		<None Remove="AutoMapperLite.Tests/**" />
+		<None Remove="AutoMapperLite.Benchmarks/**" />
 	</ItemGroup>
 
 </Project>

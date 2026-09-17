@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="AutoMapperLite.csproj" />
-  <Project Path="AutoMapperLite.Tests\AutoMapperLite.Tests.csproj" />
-  <Project Path="AutoMapperLite.Benchmarks\AutoMapperLite.Benchmarks.csproj" />
+  <Project Path="AutoMapperLite.Tests/AutoMapperLite.Tests.csproj" />
+  <Project Path="AutoMapperLite.Benchmarks/AutoMapperLite.Benchmarks.csproj" />
 </Solution>
