@@ -19,6 +19,13 @@ jobs:
   build-test-publish:
     runs-on: ubuntu-latest
     if: github.event.inputs.confirm == 'publish'
+    # Must match the "Environment: release" scoping on the nuget.org Trusted
+    # Publishing policy (atkhssn-nuget) exactly, or the OIDC token this job
+    # gets won't carry a matching environment claim and NuGet's token
+    # exchange fails with "No matching trust policy owned by user" (a
+    # generic message that also fires for this mismatch, not just a
+    # username mismatch).
+    environment: release
     permissions:
       id-token: write # required for NuGet Trusted Publishing (OIDC token issuance)
       contents: read
