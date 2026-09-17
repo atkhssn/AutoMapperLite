@@ -27,29 +27,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # All three SDK majors the Tests project targets are installed explicitly,
+      # not just the newest one. Root cause of the repeated "MSB3030: Could not
+      # copy ... net9.0/apphost because it was not found" failures on this
+      # ubuntu-latest runner (confirmed by building net9.0 alone, in its own
+      # `dotnet build` process, with no other TFM involved — it still failed,
+      # ruling out any cross-TFM race or build-ordering explanation): only the
+      # .NET 10 SDK was installed, so net10.0's apphost came from that SDK's own
+      # bundled files, while net8.0/net9.0's apphosts had to be resolved as
+      # separate NuGet packages (microsoft.netcore.app.host.linux-x64) — net8.0's
+      # happened to resolve, net9.0's didn't. Installing the matching SDK for
+      # every targeted TFM makes every apphost come from a local SDK install
+      # instead of depending on that NuGet resolution at all.
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
 
       - name: Restore
         run: dotnet restore AutoMapperLite.slnx
 
-      # Each TargetFramework of AutoMapperLite.Tests (an exe project, since xunit.v3's
-      # MTP self-hosting requires UseAppHost=true) is built as its OWN `dotnet build`
-      # invocation, not via one multi-targeted `dotnet build AutoMapperLite.slnx`.
-      # A single -m:1 (single-node) solution-wide build still hit, on this
-      # ubuntu-latest runner, "MSB3030: Could not copy ... net9.0/apphost because it
-      # was not found" for whichever TFM's inner build ran in the middle — net8.0 and
-      # net10.0 both succeeded in the same run, only net9.0 failed, even though every
-      # step logged "on node 1" (so it wasn't cross-node parallelism). That points to
-      # the multi-targeting "outer build" dispatch mechanism itself, not MSBuild node
-      # count — splitting each TFM into its own separate `dotnet build` process (via
-      # -f) removes any possibility of TFMs interfering with each other's apphost
-      # generation/copy. Not reproduced locally on Windows. AutoMapperLite.Benchmarks
-      # is deliberately not built here — it's a dev-only tool not needed for
-      # pack/test/publish, and skipping it removes another apphost-generation exe
-      # from this workflow's risk surface.
+      # AutoMapperLite.Benchmarks is deliberately not built here — it's a
+      # dev-only tool not needed for pack/test/publish.
       - name: Build (Release)
         run: |
           dotnet build AutoMapperLite.csproj -c Release --no-restore -m:1
