@@ -35,11 +35,21 @@ jobs:
       - name: Restore
         run: dotnet restore AutoMapperLite.slnx
 
+      # -m:1 (single MSBuild node) works around a real, observed race: xunit.v3's MTP
+      # self-hosting requires UseAppHost=true, and building this multi-targeted
+      # (net8.0/9.0/10.0) exe project's per-TFM inner builds in parallel can let one
+      # TFM's apphost-copy step run before another TFM's apphost generation finishes
+      # ("MSB3030: Could not copy ... apphost because it was not found"). Not
+      # reproduced locally on Windows; seen on the ubuntu-latest runner here. -m:1
+      # only belongs on this MSBuild-driven step — passing it to `dotnet test` below
+      # is silently misparsed as an MTP runner argument instead (confirmed locally:
+      # it produces "Zero tests ran", not a build-parallelism change), so Test reuses
+      # this step's already-built, race-free output via --no-build instead.
       - name: Build (Release)
-        run: dotnet build AutoMapperLite.slnx -c Release --no-restore -v normal
+        run: dotnet build AutoMapperLite.slnx -c Release --no-restore -v normal -m:1
 
       - name: Test (Release)
-        run: dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj -c Release --no-restore
+        run: dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj -c Release --no-build
 
       - name: Pack
         run: dotnet pack AutoMapperLite.csproj -c Release --no-restore -o artifacts
