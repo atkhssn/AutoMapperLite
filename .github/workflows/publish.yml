@@ -1,0 +1,62 @@
+name: Publish to NuGet
+
+# Manual only, on purpose: publishing to NuGet is irreversible (a version can
+# never be re-uploaded or deleted once pushed, only unlisted/deprecated
+# later), so this never fires on a normal push/PR — only when explicitly run
+# from the Actions tab.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "publish" to confirm you want to push AutoMapperLite.csproj\'s current <Version> to nuget.org'
+        required: true
+
+concurrency:
+  group: publish-to-nuget
+  cancel-in-progress: false
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'publish'
+    permissions:
+      id-token: write # required for NuGet Trusted Publishing (OIDC token issuance)
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore AutoMapperLite.slnx
+
+      - name: Build (Release)
+        run: dotnet build AutoMapperLite.slnx -c Release --no-restore
+
+      - name: Test (Release)
+        run: dotnet test AutoMapperLite.Tests/AutoMapperLite.Tests.csproj -c Release --no-restore
+
+      - name: Pack
+        run: dotnet pack AutoMapperLite.csproj -c Release --no-restore -o artifacts
+
+      # Exchanges this run's GitHub OIDC token for a short-lived (~1 hour)
+      # NuGet API key — no long-lived secret is stored anywhere. Requires a
+      # matching Trusted Publishing policy configured on nuget.org for the
+      # atkhssn/AutoMapperLite repo with Workflow File set to "publish.yml".
+      - name: NuGet login (OIDC -> temp API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: NuGet push
+        run: >
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
