@@ -1,7 +1,7 @@
 ﻿<p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
-    <img src="docs/assets/logo-light.png" alt="AutoMapperLite" width="360">
+    <source media="(prefers-color-scheme: dark)" srcset="https://automapperlite.atkhssn.info/assets/logo-dark.png">
+    <img src="https://automapperlite.atkhssn.info/assets/logo-light.png" alt="AutoMapperLite" width="360">
   </picture>
 </p>
 
