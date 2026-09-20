@@ -459,6 +459,27 @@ namespace AutoMapperLite.Tests
         }
 
         [Fact]
+        public void Map_UsesForPath_WhenLeafValueIsNull()
+        {
+            // Regression test: a ForPath function targeting a leaf string property that
+            // returns null must leave the destination property null, not throw while
+            // trying to construct a new instance of the leaf's own type (string has no
+            // public parameterless constructor reachable via reflection).
+            var config = new MapperConfig();
+            config.CreateMap<Location, LocationViewModel>()
+                .ForPath(dest => dest.OrganizationViewModel.OrgName, src => (string?)null);
+            var mapper = new Mapper(config);
+
+            var result = mapper.Map<LocationViewModel>(new Location
+            {
+                Address = "1 Main St",
+                Organization = new Organization { OrgName = "Acme", Country = new Country { Name = "Wonderland" } }
+            });
+
+            Assert.Null(result.OrganizationViewModel.OrgName);
+        }
+
+        [Fact]
         public void Map_MapsListOfObjects()
         {
             var config = new MapperConfig();

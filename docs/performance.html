@@ -238,10 +238,15 @@ dotnet run --project AutoMapperLite.Benchmarks -c Release -- --filter "*"</code>
       <p>
         Every source/destination type pair is compiled once, lazily, into a real
         <code>Func&lt;TSource, TDestination&gt;</code> via <code>System.Linq.Expressions</code>, cached
-        per mapping configuration. This removes reflection from the hot path entirely —
-        <code>PropertyInfo.GetValue</code>/<code>SetValue</code>, <code>MethodInfo.Invoke</code>, and
-        <code>Activator.CreateInstance</code> are used only once, at compile time, never per mapped
-        object. Dispatch — finding the right compiled delegate for a given call — is cached per
+        per mapping configuration. This removes reflection from the compiled path entirely —
+        <code>PropertyInfo.GetValue</code>/<code>SetValue</code> and <code>MethodInfo.Invoke</code> never
+        run per mapped object, and destination construction (top-level and same-name nested objects) is
+        a compiled constructor call (<code>Expression.New</code>), not <code>Activator.CreateInstance</code>.
+        <code>Activator.CreateInstance</code> itself isn't fully gone from every path, though: it still
+        backs <code>List&lt;T&gt;</code> container creation on the untyped collection-dispatch fallback
+        (a non-generic <code>IEnumerable</code> source, or an empty source collection) and intermediate
+        objects along a <code>ForPath</code> walk (see below) — both deliberately-interpreted, less-common
+        paths, not the compiled per-property hot path. Dispatch — finding the right compiled delegate for a given call — is cached per
         <code>Mapper</code> instance: one dictionary lookup resolves the delegate once, and every
         subsequent call reuses it directly. Collection mapping resolves the element type and element
         mapper once per call (not once per item) and runs a strongly-typed loop with no per-item type

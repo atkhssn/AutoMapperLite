@@ -19,6 +19,12 @@
 		<PackageReleaseNotes>
 			AutoMapperLite 4.4.1 — current official release; all prior versions are deprecated.
 
+			• Fixed: a ForPath mapping targeting a leaf property that legitimately resolves to
+			  null (e.g. an optional string) either lost that null to a freshly-constructed
+			  instance, or — for a leaf type with no public parameterless constructor reachable
+			  via reflection, most commonly string itself — threw InvalidOperationException
+			  outright. The nested-path walk tried to descend one segment past the actual leaf;
+			  only intermediate segments need that.
 			• Added: same-name nested collection destination *properties* now also accept an
 			  array (T[]) destination, matching the array support the top-level
 			  Map&lt;TDestination&gt;(object) API already had since 4.4.0. Previously an
@@ -34,7 +40,10 @@
 			  trails AutoMapper on collections (it has beaten AutoMapper there since 4.4.0), and
 			  SECURITY.md's supported-version table no longer references 4.2.x, a version that
 			  was never published to NuGet (see CHANGELOG.md/CLAUDE.md for the verified publish
-			  history). No code-behavior changes from the documentation fixes.
+			  history), and the performance page no longer overstates Activator.CreateInstance's
+			  elimination (it still backs the interpreted ForPath walk and the untyped
+			  collection-dispatch fallback, just not the compiled per-property path). No
+			  code-behavior changes from the documentation fixes.
 			• No public API breaking changes since 4.0.2.
 
 			Previous (4.4.0): mapping engine and performance redesign — each source/destination

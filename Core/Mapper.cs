@@ -614,7 +614,15 @@ namespace AutoMapperLite
                     SetMappedValue(prop, current, mapFunc(source), fullKey);
                 }
 
-                if (prop.GetValue(current) == null)
+                // The leaf segment (the actual target of this path) is never descended into —
+                // only intermediate segments need an instance to walk through. Without this,
+                // a leaf mapped to null (a legitimate result, e.g. an optional string) would
+                // have its null overwritten by a freshly-constructed instance, and would throw
+                // outright for a leaf type with no public parameterless constructor (e.g. string).
+                if (i == segments.Length - 1) break;
+
+                var value = prop.GetValue(current);
+                if (value == null)
                 {
                     var nextInstance = CreateInstance(prop.PropertyType);
                     prop.SetValue(current, nextInstance);
@@ -622,7 +630,7 @@ namespace AutoMapperLite
                 }
                 else
                 {
-                    current = prop.GetValue(current)!;
+                    current = value;
                 }
             }
         }
